@@ -19,7 +19,7 @@ export default function HeroSection() {
     <div>
       <Navbar />
       <section className="relative bg-gradient-to-r from-slate-500 to-zinc-900 text-white">
-        <div className="container mx-auto px-4 py-12 md:py-20 flex flex-col md:flex-row items-center gap-10">
+        <div className="container flex flex-col-reverse mx-auto px-4 py-12 md:py-20 lg:flex-row md:flex-row items-center gap-10">
           <div className="md:w-1/2">
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
               Printing Made Easy
@@ -57,21 +57,22 @@ export default function HeroSection() {
               Save Your Time and Money
             </h1>
             <p className="text-lg mt-4 leading-relaxed pe-5">
-              Tidak perlu repot mengantri! Cukup pesan secara online dan ambil
-              <br />
+              Tidak perlu repot mengantri! Cukup pesan secara online dan ambil{" "}
+              <br className="hidden lg:block"/>
               saat pesanan telah siap.
             </p>
           </div>
         </div>
       </section>
-      <section className="bg-gradient-to-r from-slate-500 to-zinc-900 h-1/2">
-        <div className="container pt-3 mx-auto px-6 sm:px-7 lg:px-10 relative text-white">
+      <section className="bg-gradient-to-r from-slate-500 to-zinc-900 lg:max-h-96 sm:max-h-full">
+        <div className="container pt-3 mx-auto px-6 sm:px-7 lg:px-10 text-white">
           <p>How to order?</p>
           <h1 className="text-3xl font-bold leading-tight pb-4">
-            Pemesanan dilakukan hanya dengan <br />4 langkah mudah
+            Pemesanan dilakukan hanya dengan <br className="hidden lg:block" />4
+            langkah mudah
           </h1>
           {/* Grid */}
-          <div className="grid grid-cols-4 gap-6 py-3">
+          <div className="grid lg:grid-cols-4 grid-rows-4 gap-6 py-3">
             <div>
               <Button
                 className="px-6 py-3 bg-black text-white font-semibold rounded-lg shadow-lg hover:bg-gray-100"
