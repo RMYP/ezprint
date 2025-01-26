@@ -12,7 +12,7 @@ import {
 import Image from "next/image";
 import Navbar from "@/components/exNavbar";
 
-import { Printer, Award } from "lucide-react";
+import { Printer, Mails, MessagesSquare } from "lucide-react";
 
 export default function HeroSection() {
   return (
@@ -58,7 +58,7 @@ export default function HeroSection() {
             </h1>
             <p className="text-lg mt-4 leading-relaxed pe-5">
               Tidak perlu repot mengantri! Cukup pesan secara online dan ambil{" "}
-              <br className="hidden lg:block"/>
+              <br className="hidden lg:block" />
               saat pesanan telah siap.
             </p>
           </div>
@@ -131,11 +131,55 @@ export default function HeroSection() {
           </div>
         </div>
       </section>
-      <section>
-        <div className="flex justify-center">
-          <h1 className="text-2xl font-bold leading-tights">
-            How to contact us?
-          </h1>
+      <section className="my-10">
+        <div>
+          <div className="text-center mb-10">
+            <h1 className="text-2xl md:text-4xl font-bold leading-tight">
+              How to Contact Us?
+            </h1>
+          </div>
+          <div className="flex flex-col lg:flex-row justify-center gap-20">
+            <Card className="lg:w-1/3 w-full text-center ">
+              <CardHeader>
+                <CardTitle>
+                  <div className="flex flex-col items-center gap-4">
+                    <MessagesSquare size={70} />
+                    <h1>Chat Whatsapp</h1>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  Jika Anda memiliki pertanyaan, silakan hubungi kami melalui
+                  WhatsApp. Namun perlu diingat kami hanya melayani pesan chat
+                  dan tidak menerima panggilan telepon. Kami siap membantu Anda!
+                </p>
+                <p className="py-4 underline decoration-solid text-blue-600">
+                  +62-895-3287-96965
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="lg:w-1/3 w-full text-center ">
+              <CardHeader>
+                <CardTitle>
+                  <div className="flex flex-col items-center gap-4">
+                    <Mails size={70} />
+                    <h1>Emails</h1>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  Jika Anda memiliki pertanyaan atau kebutuhan khusus, jangan
+                  ragu untuk menghubungi kami melalui email. Kami akan merespons
+                  pesan Anda secepat mungkin!
+                </p>
+                <p className="py-4 underline decoration-solid text-blue-600">
+                  rizkimauludinyoga@gmail.com
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
     </div>
