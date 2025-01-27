@@ -64,6 +64,8 @@ export default function HeroSection() {
           </div>
         </div>
       </section>
+
+      {/* How to order section */}
       <section className="bg-gradient-to-r from-slate-500 to-zinc-900 lg:max-h-96 sm:max-h-full">
         <div className="container pt-3 mx-auto px-6 sm:px-7 lg:px-10 text-white">
           <p>How to order?</p>
@@ -124,13 +126,15 @@ export default function HeroSection() {
               <h2 className="text-xl font-bold py-2">Dokumen siap diambil</h2>
               <p>
                 Dokumen dapat diambil langsung di lokasi atau diantar oleh
-                kurir. Untuk pemesanan di atas 50 ribu rupiah, kami menawarkan
+                kurir. Untuk pemesanan di atas 60 ribu rupiah, kami menawarkan
                 gratis ongkir untuk wilayah Samarinda Kota.
               </p>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Contact us section */}
       <section className="my-10">
         <div>
           <div className="text-center mb-10">
@@ -138,7 +142,7 @@ export default function HeroSection() {
               How to Contact Us?
             </h1>
           </div>
-          <div className="flex flex-col lg:flex-row justify-center gap-20">
+          <div className="flex flex-col lg:flex-row justify-center lg:gap-20 gap-5">
             <Card className="lg:w-1/3 w-full text-center ">
               <CardHeader>
                 <CardTitle>
@@ -182,6 +186,7 @@ export default function HeroSection() {
           </div>
         </div>
       </section>
+      <footer></footer>
     </div>
   );
 }
