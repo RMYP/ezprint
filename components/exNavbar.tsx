@@ -87,7 +87,7 @@ export default function Navbar() {
                       onClick={() => {
                         router.push("logout");
                       }}
-                      className="bg-transparent text-white"
+                      className="bg-transparent text-white w-full"
                     >
                       <LogOut size={20} />
                       <span className="text-lg">Log Out</span>
@@ -98,16 +98,14 @@ export default function Navbar() {
                       onClick={() => {
                         setLoading(true);
                         router.push("/login");
-                        setLoading(false);
                       }}
-                      className="bg-transparent text-white"
+                      className="bg-transparent text-white w-full"
                     >
                       {loading ? (
                         <Loader2 className="animate-spin" />
                       ) : (
                         <LogIn size={20} />
                       )}
-                      <LogIn size={20} />
                       <span className="text-lg">Log In</span>
                     </Button>
                   )}
