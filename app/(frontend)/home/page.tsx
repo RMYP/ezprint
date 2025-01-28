@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,7 +17,49 @@ import Navbar from "@/components/exNavbar";
 
 import { Printer, Mails, MessagesSquare } from "lucide-react";
 
+// validation
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+// Hooks
+import { useSimulation } from "@/hooks/price-simulation.store";
+import { useForm } from "react-hook-form";
+import { useState } from "react";
+
+const priceSimulationSchema = z.object({
+  sheetCount: z
+    .number({ required_error: "Sheet count is required" })
+    .min(1, "Must be at least 1"),
+  paperType: z.string({ required_error: "Paper type is required" }),
+  finishing: z.string({ required_error: "Finishing option is required" }),
+});
+
+type PriceSimulationForm = z.infer<typeof priceSimulationSchema>;
+
 export default function HeroSection() {
+  const paperType = useSimulation((state) => state.paperType);
+  const finishingOption = useSimulation((state) => state.finishingOption);
+  const setPrice = useSimulation((state) => state.setPrice);
+  const simulationPrice = useSimulation((state) => state.price);
+
+  const form = useForm<PriceSimulationForm>({
+    resolver: zodResolver(priceSimulationSchema),
+    defaultValues: {
+      sheetCount: undefined,
+      paperType: "",
+      finishing: "",
+    },
+  });
+
+  const onSubmit = (data: PriceSimulationForm) => {
+    const selectedPaper = paperType.find((p) => p.type === data.paperType);
+    const selectedFinishing = finishingOption.find(
+      (f) => f.type === data.finishing
+    );
+
+    if (selectedPaper && selectedFinishing) {
+      setPrice(data.sheetCount, selectedPaper.price, selectedFinishing.price);
+    }
+  };
   return (
     <div>
       <Navbar />
@@ -27,8 +72,11 @@ export default function HeroSection() {
             <div className="text-lg mt-4 leading-relaxed">
               Wujudkan ide-ide Anda dengan layanan cetak berkualitas dari kami!
               Cepat, terpercaya, dan ramah di kantong{" - "}mulai dari{" "}
-              <span className="text-2xl font-bold inline">Rp.300</span> per
-              lembar untuk bisnis atau kebutuhan kuliah Anda.
+              <span className="text-2xl font-bold inline">Rp.350</span> per
+              lembar untuk bisnis atau kebutuhan kuliah Anda.{" "}
+              <span className="text-2xl font-bold inline">
+                Tanpa Minimal Order
+              </span>
             </div>
 
             <div className="mt-6 flex gap-4">
@@ -60,6 +108,102 @@ export default function HeroSection() {
               Tidak perlu repot mengantri! Cukup pesan secara online dan ambil{" "}
               <br className="hidden lg:block" />
               saat pesanan telah siap.
+            </p>
+          </div>
+        </div>
+      </section>
+      {/* Price Table */}
+
+      <section className="container mx-auto mb-10">
+        <h1 className="text-center text-3xl font-bold pb-2 lg:pb-10 md:pb-8">
+          Simulasi Harga
+        </h1>
+        <div className="flex flex-col-reverse lg:flex-row justify-center gap-4 w-full items-center space-y-8">
+          <div className="w-full max-w-md">
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="bg-white p-6 rounded-2xl shadow-lg space-y-6"
+            >
+              <div>
+                <label className="block text-gray-600 font-medium mb-2">
+                  Jumlah Halaman
+                </label>
+                <input
+                  type="number"
+                  placeholder="Enter sheet count"
+                  {...form.register("sheetCount", { valueAsNumber: true })}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                />
+                {form.formState.errors.sheetCount && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {form.formState.errors.sheetCount.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-gray-600 font-medium mb-2">
+                  Jenis Kertas
+                </label>
+                <select
+                  {...form.register("paperType")}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Choose paper type</option>
+                  {paperType.map((item, index) => (
+                    <option key={index} value={item.type}>
+                      {item.type}
+                    </option>
+                  ))}
+                </select>
+                {form.formState.errors.paperType && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {form.formState.errors.paperType.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-gray-600 font-medium mb-2">
+                  Finishing
+                </label>
+                <select
+                  {...form.register("finishing")}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Choose finishing</option>
+                  {finishingOption.map((item, index) => (
+                    <option key={index} value={item.type}>
+                      {item.type}
+                    </option>
+                  ))}
+                </select>
+                {form.formState.errors.finishing && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {form.formState.errors.finishing.message}
+                  </p>
+                )}
+              </div>
+
+              <Button type="submit" className="w-full">
+                Calculate Price
+              </Button>
+              <button
+                type="submit"
+                className="w-full text-white font-semibold py-2 rounded-lg hover:bg-blue-700"
+              ></button>
+            </form>
+          </div>
+
+          <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-lg text-center">
+            <h2 className="text-xl font-bold text-gray-700">
+              Calculation Result
+            </h2>
+            <p className="text-gray-600 mt-4">Total Price:</p>
+            <p className="text-2xl font-bold text-gray-800">
+              {simulationPrice !== undefined
+                ? `Rp.${simulationPrice.toLocaleString()}`
+                : "Rp.0"}
             </p>
           </div>
         </div>

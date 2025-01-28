@@ -10,7 +10,7 @@ export default function Navbar() {
     <header className="flex lg:justify-between h-20 py-4 w-full shrink-0 items-center px-4 md:px-6 bg-white shadow-sm ">
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="lg:hidden">
+          <Button variant="outline" size="icon" className="block lg:hidden">
             <MenuIcon className="h-6 w-6" />
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
