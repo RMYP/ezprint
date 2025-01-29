@@ -202,7 +202,6 @@ export function LoginForm({
                                     </span>
                                 </Button>
                             )}
-                            
                         </div>
                         <div className="text-center text-sm pb-6 md:pb-8">
                             Don&apos;t have an account?{" "}
