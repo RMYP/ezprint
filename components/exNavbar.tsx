@@ -35,7 +35,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-export default function Navbar() {
+export default function Navbar({ props }: { props: undefined | string }) {
   const menuItems = [
     { label: "Home", icon: Home, path: "/home" },
     { label: "My Profile", icon: User, path: "/profile" },
@@ -49,7 +49,7 @@ export default function Navbar() {
   const router = useRouter();
 
   return (
-    <div>
+    <div className={props}>
       <div>
         <div className="lg:hidden flex py-6 items-center justify-between">
           <div className="flex items-center ps-3">

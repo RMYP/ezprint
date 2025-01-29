@@ -23,7 +23,6 @@ import * as z from "zod";
 // Hooks
 import { useSimulation } from "@/hooks/price-simulation.store";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
 
 const priceSimulationSchema = z.object({
   sheetCount: z
@@ -62,7 +61,7 @@ export default function HeroSection() {
   };
   return (
     <div>
-      <Navbar />
+      <Navbar props={undefined} />
       <section className="relative bg-gradient-to-r from-slate-500 to-zinc-900 text-white">
         <div className="container flex flex-col-reverse mx-auto px-4 py-12 md:py-20 lg:flex-row md:flex-row items-center gap-10">
           <div className="md:w-1/2">
