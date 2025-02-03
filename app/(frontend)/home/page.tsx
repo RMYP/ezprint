@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -59,6 +59,7 @@ export default function HeroSection() {
       setPrice(data.sheetCount, selectedPaper.price, selectedFinishing.price);
     }
   };
+
   return (
     <div>
       <Navbar props={undefined} />
@@ -80,11 +81,11 @@ export default function HeroSection() {
 
             <div className="mt-6 flex gap-4">
               <Button className="px-6 py-3 bg-white text-zinc-700 font-semibold rounded-lg shadow-lg hover:bg-gray-100">
-                Get Started
+                <Link href="/chart">Pesan Sekarang</Link>
               </Button>
-              <Button className="px-6 py-3 bg-transparent border border-white font-semibold rounded-lg hover:bg-white hover:text-blue-600">
+              {/* <Button className="px-6 py-3 bg-transparent border border-white font-semibold rounded-lg hover:bg-white hover:text-blue-600">
                 Learn More
-              </Button>
+              </Button> */}
             </div>
           </div>
 
@@ -187,10 +188,6 @@ export default function HeroSection() {
               <Button type="submit" className="w-full">
                 Calculate Price
               </Button>
-              <button
-                type="submit"
-                className="w-full text-white font-semibold py-2 rounded-lg hover:bg-blue-700"
-              ></button>
             </form>
           </div>
 

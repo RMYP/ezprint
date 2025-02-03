@@ -11,7 +11,14 @@ interface PriceSimulation {
   finishingOption: Detail[];
   printingType: Detail[];
   price: number | undefined;
+  checkoutPrice: number | undefined;
   setPrice: (sheet: number, paperPrice: number, finishingPrice: number) => void;
+  setCheckout: (
+    sheet: number,
+    paperPrice: number,
+    finishingPrice: number,
+    quantity: number
+  ) => void;
 }
 export const useSimulation = create<PriceSimulation>((set) => ({
   sheet: undefined,
@@ -26,12 +33,20 @@ export const useSimulation = create<PriceSimulation>((set) => ({
     { type: "Binder Clip", price: 3000 },
   ],
   printingType: [
-    { type: "Cetak Satu Sisi", price: 0 },
-    { type: "Cetak Dua Sisi (bolak-balik)", price: 0 },
+    { type: "Cetak Satu Sisi (simplex)", price: 0 },
+    { type: "Cetak Dua Sisi (duplex)", price: 0 },
   ],
   price: undefined,
+  checkoutPrice: undefined,
   setPrice: (sheet, paperPrice, finishingPrice) => {
     const total = sheet * paperPrice + finishingPrice;
     set(() => ({ price: total }));
+  },
+  setCheckout: (sheet, papperPrice, finishingPrice, quantity) => {
+    console.log("masuk")
+    const price = sheet * papperPrice + finishingPrice;
+    console.log(price)
+    const totalPrice = price * quantity;
+    set(() => ({ checkoutPrice: totalPrice }));
   },
 }));

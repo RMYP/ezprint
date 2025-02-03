@@ -22,8 +22,24 @@ model Auth {
 }
 
 model User {
-  id       String @unique @default(cuid())
+  id       String  @unique @default(cuid())
   username String
   phoneNum String?
   Auth     Auth?
+  Order    Order[]
+}
+
+model Order {
+  id            String   @unique @default(cuid())
+  sheetCount    Int?
+  paperType     String?
+  finishing     String?
+  quantity      Int?
+  printType     String?
+  totalPrice    Int?
+  status        Boolean?
+  paymentStatus Boolean?
+  documentPath  String
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
 }

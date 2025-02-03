@@ -52,6 +52,7 @@ export async function POST(request: Request) {
         expiresIn: "1d",
       });
 
+      console.log(_token)
     return Response.json(
       {
         status: 201,

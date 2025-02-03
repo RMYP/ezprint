@@ -13,7 +13,6 @@ export async function GET(request: Request) {
   } catch (err: unknown) {
     console.error("OAuth Error:", err);
 
-    // ✅ Always return a response, even in case of an error
     return NextResponse.json(
       { error: "Failed to generate authorization URL" },
       { status: 500 }

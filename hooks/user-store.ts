@@ -4,13 +4,13 @@ import { getCookie } from "cookies-next";
 interface Login {
   token: string | undefined;
   loginStatus: boolean;
-  setToken: (status: boolean) => void;
+  setToken: () => void;
 }
 
 export const useLogin = create<Login>((set) => ({
   token: undefined,
   loginStatus: false,
-  setToken: async (status) => {
+  setToken: async () => {
     const cookies = getCookie("_token") as string | undefined;
     if (cookies) {
       set(() => ({ token: cookies, loginStatus: true }));
