@@ -78,7 +78,7 @@ export function LoginForm({
                 maxAge: 60 * 60 * 24,
             });
 
-            checkToken(true);
+            checkToken();
             setIsLoading(false);
         } catch (err: unknown) {
             if (err instanceof Error) {
