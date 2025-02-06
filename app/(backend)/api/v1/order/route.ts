@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { checkJwt } from "@/lib/jwtDecode";
-import path from "path";
+import httpError from "@/lib/httpError";
 
 export async function POST(request: Request) {
   try {
@@ -11,33 +11,19 @@ export async function POST(request: Request) {
       quantity,
       printType,
       totalPrice,
-      fieldId
+      fieldId,
     } = await request.json();
 
-    const token = request.headers.get("authorization");
+    const token = request.headers.get("cookie")?.split("_token=")[1];
 
     if (!token) {
-      return Response.json(
-        {
-          status: 401,
-          success: false,
-          message: "Unauthorized access!",
-        },
-        { status: 401 }
-      );
+      return httpError(401, false, "Unauthorized access!", null);
     }
 
     const decodeJwt = await checkJwt(token);
 
     if (!decodeJwt?.id) {
-      return Response.json(
-        {
-          status: 403,
-          success: false,
-          message: "Invalid JWT",
-        },
-        { status: 403 }
-      );
+      return httpError(403, false, "Invalid JWT", null);
     }
 
     const createCheckout = await prisma.order.update({
@@ -56,22 +42,13 @@ export async function POST(request: Request) {
       },
     });
 
-    return Response.json(
-      {
-        status: 201,
-        success: true,
-        data: createCheckout,
-      },
-      { status: 201 }
-    );
+    return httpError(201, true, "Checkout successful", createCheckout);
   } catch (err: unknown) {
-    return Response.json(
-      {
-        status: 500,
-        success: false,
-        message: err instanceof Error ? err.message : "Unexpected server error",
-      },
-      { status: 500 }
+    return httpError(
+      500,
+      false,
+      err instanceof Error ? err.message : "Unexpected server error",
+      null
     );
   }
 }

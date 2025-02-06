@@ -2,9 +2,15 @@ import { LogIn, UserRound, ShoppingCart, Bell } from "lucide-react";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useLogin } from "@/hooks/user-store";
+import { useEffect } from "react";
 
 export default function Navbar() {
   const isLogin = true;
+  const getToken = useLogin((state) => state.setToken);
+  useEffect(() => {
+    getToken();
+  }, []);
 
   return (
     <header className="flex lg:justify-between h-20 py-4 w-full shrink-0 items-center px-4 md:px-6 bg-white shadow-sm ">

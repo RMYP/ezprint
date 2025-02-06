@@ -74,10 +74,6 @@ export function LoginForm({
                 return;
             }
 
-            setCookie("_token", data.data._token, {
-                maxAge: 60 * 60 * 24,
-            });
-
             checkToken();
             setIsLoading(false);
         } catch (err: unknown) {

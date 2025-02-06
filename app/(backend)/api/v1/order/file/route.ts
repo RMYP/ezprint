@@ -17,7 +17,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const token = request.headers.get("authorization");
+    const token = request.headers.get("cookie")?.split("_token=")[1];
+
+    console.log(token);
     if (!token) {
       return Response.json(
         { status: 401, success: false, message: "Unauthorized access!" },

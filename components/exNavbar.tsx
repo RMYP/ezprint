@@ -3,13 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useLogin } from "@/hooks/user-store";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { useRouter, usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 import {
   Menu,
@@ -22,6 +20,8 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  ShoppingCart,
+  UserRound,
 } from "lucide-react";
 
 import {
@@ -42,11 +42,22 @@ export default function Navbar({ props }: { props: undefined | string }) {
     { label: "Notification", icon: Bell, path: "/notification" },
     { label: "Setting", icon: Settings, path: "setting" },
   ];
+  const lgMenuItems = [
+    { label: "Home", icon: Home, path: "/home" },
+    { label: "Product", icon: User, path: "/product" },
+    { label: "Contact", icon: Bell, path: "/contact" },
+    { label: "FAQ", icon: Settings, path: "/faq" },
+  ];
 
   const [loading, setLoading] = useState(false);
   const isLogin = useLogin((state) => state.loginStatus);
   const pathname = usePathname();
   const router = useRouter();
+  const getToken = useLogin((state) => state.setToken);
+
+  useEffect(() => {
+    getToken();
+  }, []);
 
   return (
     <div className={props}>
@@ -125,16 +136,31 @@ export default function Navbar({ props }: { props: undefined | string }) {
           <Image src={"/logo.png"} alt="logo" width={65} height={65} />
         </div>
         <div className="flex gap-10">
-          <Link href={"#"}>Home</Link>
-          <Link href={"#"}>Product</Link>
-          <Link href={"#"}>Contact</Link>
-          <Link href={"#"}>FAQ</Link>
+          {lgMenuItems.map((item) => (
+            <Link key={item.label} href={item.path}>{item.label}</Link>
+          ))}
         </div>
         <div>
-          <Link href={"/login"} className="flex flex-row gap-3 items-center">
-            <LogIn />
-            <h1>Login</h1>
-          </Link>
+          {isLogin ? (
+            <div className="pe-5 flex gap-5">
+              <Link href={"/notification"}>
+                <Bell />
+              </Link>
+              <Link href={"/chart"}>
+                <ShoppingCart />
+              </Link>
+              <Link href={"/profile"}>
+                <UserRound />
+              </Link>
+            </div>
+          ) : (
+            <div className="pe-5">
+              <Link href={"/login"} className="flex gap-2">
+                <p>Login</p>
+                <LogIn />
+              </Link>
+            </div>
+          )}
         </div>
       </header>
     </div>

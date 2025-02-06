@@ -10,22 +10,13 @@ interface JwtPayloadWithId extends jwt.JwtPayload {
   exp: number;
 }
 
-export async function checkJwt(token: string){
+export async function checkJwt(token: string) {
   try {
-    console.log("!", token)
     if (!token) return null;
-
-    console.log("2")
-    if (!token.startsWith("Bearer ")) return null;
-
-    console.log("3")
-    const bearerToken = token.split("Bearer ")[1];
-    console.log("4", bearerToken)
-
+    if (!token.startsWith("Bearer")) return null;
+    const bearerToken = token.split("Bearer")[1];
     const decoded = jwt.verify(bearerToken, JWT_SECRET) as JwtPayloadWithId;
-    console.log("5", decoded)
     decoded.token = token;
-    console.log("6", decoded)
     return decoded;
   } catch (err: unknown) {
     if (err instanceof Error) {

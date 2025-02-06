@@ -30,19 +30,14 @@ const priceSimulationSchema = z.object({
 type PriceSimulationForm = z.infer<typeof priceSimulationSchema>;
 
 export default function Page() {
-  const getToken = useLogin((state) => state.setToken);
   const token = useLogin((state) => state.token);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [orderId, setOrderId] = useState("");
   const paperType = useSimulation((state) => state.paperType);
   const finishingOption = useSimulation((state) => state.finishingOption);
   const setPrice = useSimulation((state) => state.setCheckout);
   const printingType = useSimulation((state) => state.printingType);
   const calculatedPrice = useSimulation((state) => state.checkoutPrice);
-
-  useEffect(() => {
-    getToken();
-  }, []);
 
   const form = useForm<PriceSimulationForm>({
     resolver: zodResolver(priceSimulationSchema),
@@ -55,7 +50,7 @@ export default function Page() {
     },
   });
 
-  const onSubmit = (data: PriceSimulationForm) => {
+  const onSubmit = async (data: PriceSimulationForm) => {
     const selectedPaper = paperType.find((p) => p.type === data.paperType);
     const selectedFinishing = finishingOption.find(
       (f) => f.type === data.finishing
@@ -69,19 +64,32 @@ export default function Page() {
         data.quantity
       );
     }
+
+    try {
+      if (selectedFile) {
+        toast.loading("Uploading file...");
+        const checkout = await uploadFileCheckout(
+          selectedFile,
+          token as string
+        );
+        setOrderId(checkout.id);
+      }
+
+      toast.dismiss();
+      toast.success("Berhasil upload file");
+    } catch (err: unknown) {
+      toast.dismiss();
+      toast.error(
+        err instanceof Error ? err.message : "Unexpected server error"
+      );
+    }
   };
 
   const handleCheckout = async () => {
     try {
-      let checkout;
-      if (selectedFile) {
-        toast.loading("Uploading file...");
-        checkout = await uploadFileCheckout(selectedFile, token as string);
-      }
-
       await createCheckout(
         {
-          fieldId: checkout.id,
+          fieldId: orderId,
           sheetCount: form.getValues("sheetCount"),
           paperType: form.getValues("paperType"),
           finishing: form.getValues("finishing"),
@@ -91,9 +99,6 @@ export default function Page() {
         },
         token as string
       );
-
-      toast.dismiss();
-      toast.success("Berhasil upload file");
     } catch (err: unknown) {
       toast.dismiss();
       toast.error(
@@ -110,7 +115,7 @@ export default function Page() {
           Buat Pesanan
         </p>
       </div>
-      <div className=" flex flex-col lg:flex-row justify-center gap-5 w-full space-y-8 py-3 ">
+      <div className=" flex flex-col lg:flex-row justify-center gap-2 w-full space-y-8 py-3 ">
         <div className="w-full lg:mx-5">
           <form
             onSubmit={form.handleSubmit(onSubmit)}

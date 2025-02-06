@@ -49,16 +49,16 @@ export async function GET(request: NextRequest) {
   const token = jwt.sign(
     { id: data.id, email: data.email, name: data.name, picture: data.picture },
     JWT_SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: "1d" }
   );
 
   const response = NextResponse.redirect(
     new URL("/home", request.nextUrl.origin)
   );
-  response.cookies.set("_token", token, {
+  response.cookies.set("_token", `Bearer${token}`, {
     httpOnly: true,
     path: "/",
-    maxAge: 3600,
+    maxAge: 60 * 60 * 24,
   });
 
   return response;
