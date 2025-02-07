@@ -2,8 +2,8 @@ import httpError from "@/lib/httpError";
 
 export async function POST(request: Request) {
   try {
-    console.log("masuk notifications")
     const payload = await request.json();
+    console.log(payload)
     return Response.json({
         payload
     })

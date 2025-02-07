@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       where: {
         id: fieldId,
       },
+      
       data: {
         sheetCount: sheetCount,
         paperType: paperType,
