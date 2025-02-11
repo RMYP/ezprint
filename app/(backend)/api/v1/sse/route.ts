@@ -4,7 +4,6 @@ export async function GET(request: Request) {
   try {
     const stream = new ReadableStream({
       start(controller) {
-      
         const sendNotification = (message: { message: string; status: boolean }) => {
           controller.enqueue(
             new TextEncoder().encode(`data: ${JSON.stringify(message)}\n\n`)
@@ -12,13 +11,6 @@ export async function GET(request: Request) {
         };
       
         eventEmitter.on("paymentNotification", sendNotification);
-      
-        setTimeout(() => {
-          eventEmitter.emit("paymentNotification", {
-            message: "Test Event After Connection",
-            status: true,
-          });
-        }, 5000);
       
         const cleanUp = () => {
           eventEmitter.off("paymentNotification", sendNotification);

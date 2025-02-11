@@ -221,6 +221,10 @@ interface PaymentInstructionDetail {
   getPaymentInstruction: (bank: string) => void;
 }
 
+interface paymentNotification {
+  paymentStatus: boolean;
+  setPaymentStatus: (status: boolean) => void;
+}
 
 export const usePaymentInstruction = create<PaymentInstructionDetail>(
   (set) => ({
@@ -228,7 +232,7 @@ export const usePaymentInstruction = create<PaymentInstructionDetail>(
     neededPaymentInstruction: null,
 
     getPaymentInstruction: (bank) => {
-      console.log(bank)
+      console.log(bank);
       set((state) => {
         const needed = state.paymentInstruction.find(
           (item) => item.bank.toLowerCase() === bank.toLowerCase()
@@ -242,3 +246,9 @@ export const usePaymentInstruction = create<PaymentInstructionDetail>(
     },
   })
 );
+
+export const usePaymentNotification = create<paymentNotification>((set) => ({
+  paymentStatus: false,
+  setPaymentStatus: (status: boolean) => set(() => ({ paymentStatus: status })),
+  resetPaymentStatus: () => set(() => ({ paymentStatus: false })),
+}));

@@ -76,6 +76,7 @@ export default function Page({
     };
   }, []);
 
+  console.log(notification)
   if (notification?.status) {
     router.push("/home");
   }
