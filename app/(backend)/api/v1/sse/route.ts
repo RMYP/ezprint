@@ -10,6 +10,7 @@ export async function GET(request: Request) {
           message: string;
           status: boolean;
         }) => {
+            console.log("message", message)
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify(message)}\n\n`)
           );

@@ -6,14 +6,6 @@ export async function POST(request: Request) {
   try {
     const payload = await request.json();
 
-    // will be used to trigger SSE
-    if(payload.transaction_status == "settlement") {
-      eventEmitter.emit("paymentNotification", {
-        message: "Payment Success",
-        status: true
-      })
-    }
-
     await Promise.all([
       prisma.payment.update({
         where: {
@@ -36,6 +28,14 @@ export async function POST(request: Request) {
       }),
     ]);
 
+    // will be used to trigger SSE
+    if(payload.transaction_status == "settlement") {
+      eventEmitter.emit("paymentNotification", {
+        message: "Payment Success",
+        status: true
+      })
+    }
+    
     return Response.json(
       {
         status: 200,
