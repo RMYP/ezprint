@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       transaction_status,
     } = payload;
 
+    console.log("payload", payload)
     const expectedSignature = generateSignature(
       order_id,
       status_code,
