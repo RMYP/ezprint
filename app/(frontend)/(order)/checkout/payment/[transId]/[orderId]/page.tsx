@@ -13,7 +13,6 @@ import {
 import { usePaymentInstruction } from "@/hooks/how-to-pay.store";
 import { getVaNumber } from "@/app/(frontend)/action/action";
 import { Skeleton } from "@/components/ui/skeleton";
-
 import { useRouter } from "next/navigation";
 
 interface VirtualAccountNumber {
@@ -25,7 +24,7 @@ interface VirtualAccountNumber {
 
 interface SSEStatus {
   message: string;
-  status: string;
+  status: boolean; // Changed to boolean for clarity
 }
 
 export default function Page({
@@ -34,9 +33,7 @@ export default function Page({
   params: Promise<{ transId: string; orderId: string }>;
 }) {
   const router = useRouter();
-  // SSE
-  const [notification, setNotification] = useState<SSEStatus>();
-
+  const [notification, setNotification] = useState<SSEStatus | null>(null);
   const getPaymentInstruction = usePaymentInstruction(
     (state) => state.getPaymentInstruction
   );
@@ -58,7 +55,6 @@ export default function Page({
       }
     };
     getParams();
-    console.log()
 
     const eventSource = new EventSource("/api/v1/sse");
 
@@ -68,16 +64,20 @@ export default function Page({
     };
 
     eventSource.onerror = () => {
-      console.error("SSE connection error");
+      console.error("SSE connection error. Retrying in 5 seconds...");
+      setTimeout(() => {
+        const newEventSource = new EventSource("/api/v1/sse");
+        newEventSource.onmessage = eventSource.onmessage;
+      }, 5000);
       eventSource.close();
     };
 
     return () => {
       eventSource.close();
     };
-  }, [params, neededPaymentInstruction]);
+  }, []);
 
-  if (notification?.status == "true") {
+  if (notification?.status) {
     router.push("/home");
   }
 
@@ -103,13 +103,10 @@ export default function Page({
 
           {virtualAccountNumber ? (
             <p className="font-semibold text-md">
-              {" "}
               {virtualAccountNumber.bank.toUpperCase()} Virtual Account
             </p>
           ) : (
-            <div>
-              <Skeleton className="h-5 w-40" />
-            </div>
+            <Skeleton className="h-5 w-40" />
           )}
 
           <div>
@@ -119,9 +116,7 @@ export default function Page({
                 {virtualAccountNumber.vaNumber}
               </p>
             ) : (
-              <div>
-                <Skeleton className="h-6 w-56" />
-              </div>
+              <Skeleton className="h-6 w-56" />
             )}
           </div>
 
@@ -132,9 +127,7 @@ export default function Page({
                 {virtualAccountNumber.totalPayment}
               </p>
             ) : (
-              <div>
-                <Skeleton className="h-6 w-32" />
-              </div>
+              <Skeleton className="h-6 w-32" />
             )}
           </div>
 

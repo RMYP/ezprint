@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       })
     }
 
-    Promise.all([
+    await Promise.all([
       prisma.payment.update({
         where: {
           id: payload.transaction_id,

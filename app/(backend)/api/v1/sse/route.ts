@@ -1,8 +1,9 @@
 import { eventEmitter } from "@/lib/eventEmitter";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const encoder = new TextEncoder();
+
     const stream = new ReadableStream({
       start(controller) {
         const sendNotification = (message: {
@@ -10,7 +11,7 @@ export async function GET() {
           status: boolean;
         }) => {
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(message)}`)
+            encoder.encode(`data: ${JSON.stringify(message)}\n\n`)
           );
         };
 
@@ -21,7 +22,12 @@ export async function GET() {
           controller.close();
         };
 
-        setTimeout(cleanUp, 10 * 60 * 1000);
+        const timeoutId = setTimeout(cleanUp, 10 * 60 * 1000);
+
+        request.signal.addEventListener("abort", () => {
+          clearTimeout(timeoutId);
+          cleanUp();
+        });
       },
     });
 
