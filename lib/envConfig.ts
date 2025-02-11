@@ -6,7 +6,7 @@ const ClientId = process.env.OAUTH_CLIENT_ID;
 const ClientSecret = process.env.OAUTH_CLIENT_SECRET;
 const OauthCallbackUrl = process.env.CALLBACK_URL;
 export const DocPath = process.env.DOCUMENT_PATH as string;
-export const MidtransServerKey = process.env.SERVER_KEY;
+export const MidtransServerKey = process.env.SERVER_KEY as string;
 export const MidtransClientKey = process.env.CLIENT_KEY;
 export const isProduction = process.env.IS_PRODUCTION == "true" ? true : false;
 
