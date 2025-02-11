@@ -78,6 +78,8 @@ export async function POST(request: Request) {
       },
     });
 
+    createCharge.order_id = getOrder.id
+
     return httpError(200, true, "Charge Created Successfully", createCharge);
   } catch (err: unknown) {
     return httpError(

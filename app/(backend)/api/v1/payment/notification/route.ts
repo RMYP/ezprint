@@ -3,7 +3,6 @@ import prisma from "@/lib/prisma";
 import { eventEmitter } from "@/lib/eventEmitter";
 import { MidtransServerKey } from "@/lib/envConfig";
 
-// Helper function to generate signature key
 function generateSignature(
   orderId: string,
   statusCode: string,
