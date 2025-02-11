@@ -228,6 +228,7 @@ export const usePaymentInstruction = create<PaymentInstructionDetail>(
     neededPaymentInstruction: null,
 
     getPaymentInstruction: (bank) => {
+      console.log(bank)
       set((state) => {
         const needed = state.paymentInstruction.find(
           (item) => item.bank.toLowerCase() === bank.toLowerCase()

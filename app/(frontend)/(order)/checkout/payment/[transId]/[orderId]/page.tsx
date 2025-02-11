@@ -52,12 +52,13 @@ export default function Page({
         const { transId, orderId } = await params;
         const data = await getVaNumber(orderId, transId);
         setVirtualAccountNumber(data);
+        getPaymentInstruction(data.bank);
       } catch (error) {
         console.error("Error getting params:", error);
       }
     };
-    getPaymentInstruction(virtualAccountNumber?.bank as string);
     getParams();
+    console.log()
 
     const eventSource = new EventSource("/api/v1/sse");
 
