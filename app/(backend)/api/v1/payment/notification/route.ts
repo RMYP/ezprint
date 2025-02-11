@@ -22,9 +22,9 @@ export async function POST(request: Request) {
       gross_amount,
       signature_key,
       transaction_status,
+      transaction_id
     } = payload;
 
-    console.log("payload", payload)
     const expectedSignature = generateSignature(
       order_id,
       status_code,
@@ -46,13 +46,19 @@ export async function POST(request: Request) {
       });
     }
 
+    const getId = await prisma.payment.findFirst({
+      where: {
+        transactionId: transaction_id
+      }
+    })
+
     await prisma.$transaction([
       prisma.payment.updateMany({
-        where: { orderId: order_id },
+        where: { transactionId: transaction_id },
         data: { transactionStatus: transaction_status },
       }),
       prisma.order.update({
-        where: { id: order_id },
+        where: { id: getId?.orderId },
         data: {
           paymentStatus: transaction_status === "settlement",
           status: "onProgress",
