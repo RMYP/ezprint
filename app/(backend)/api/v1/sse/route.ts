@@ -2,34 +2,32 @@ import { eventEmitter } from "@/lib/eventEmitter";
 
 export async function GET(request: Request) {
   try {
-    const encoder = new TextEncoder();
-
     const stream = new ReadableStream({
       start(controller) {
-        const sendNotification = (message: {
-          message: string;
-          status: boolean;
-        }) => {
-            console.log("message", message)
+      
+        const sendNotification = (message: { message: string; status: boolean }) => {
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(message)}\n\n`)
+            new TextEncoder().encode(`data: ${JSON.stringify(message)}\n\n`)
           );
         };
-
+      
         eventEmitter.on("paymentNotification", sendNotification);
-
+      
+        setTimeout(() => {
+          eventEmitter.emit("paymentNotification", {
+            message: "Test Event After Connection",
+            status: true,
+          });
+        }, 5000);
+      
         const cleanUp = () => {
           eventEmitter.off("paymentNotification", sendNotification);
           controller.close();
         };
-
-        const timeoutId = setTimeout(cleanUp, 10 * 60 * 1000);
-
-        request.signal.addEventListener("abort", () => {
-          clearTimeout(timeoutId);
-          cleanUp();
-        });
-      },
+      
+        request.signal.addEventListener("abort", cleanUp);
+      }
+      
     });
 
     return new Response(stream, {
@@ -40,6 +38,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (err: unknown) {
+    console.error("❗ SSE Error:", err);
     return Response.json(
       {
         status: 500,

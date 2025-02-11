@@ -64,7 +64,6 @@ export default function Page({
     };
 
     eventSource.onerror = () => {
-      console.error("SSE connection error. Retrying in 5 seconds...");
       setTimeout(() => {
         const newEventSource = new EventSource("/api/v1/sse");
         newEventSource.onmessage = eventSource.onmessage;
