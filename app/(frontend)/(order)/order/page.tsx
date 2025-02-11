@@ -3,13 +3,23 @@
 import toast from "react-hot-toast";
 import Navbar from "@/components/exNavbar";
 import { Button } from "@/components/ui/button";
-import { useForm } from "react-hook-form";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+
+import { useForm, Controller } from "react-hook-form";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
+import { useRouter } from "next/navigation";
 import { useSimulation } from "@/hooks/price-simulation.store";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useLogin } from "@/hooks/user-store";
 
@@ -19,9 +29,15 @@ const priceSimulationSchema = z.object({
   sheetCount: z
     .number({ required_error: "Sheet count is required" })
     .min(1, "Must be at least 1"),
-  paperType: z.string({ required_error: "Jenis kertas is required" }),
-  finishing: z.string({ required_error: "Finishing option is required" }),
-  printingType: z.string({ required_error: "Jenis print is required" }),
+  paperType: z
+    .string({ required_error: "Jenis kertas is required" })
+    .nonempty("Jenis kertas is required"),
+  finishing: z
+    .string({ required_error: "Finishing option is required" })
+    .nonempty("Finishing option is required"),
+  printingType: z
+    .string({ required_error: "Jenis print is required" })
+    .nonempty("Jenis print is required"),
   quantity: z
     .number({ required_error: "Jumlah rangkap is required" })
     .min(1, "Pembelian minimal 1 rangkap"),
@@ -30,6 +46,9 @@ const priceSimulationSchema = z.object({
 type PriceSimulationForm = z.infer<typeof priceSimulationSchema>;
 
 export default function Page() {
+  const [isLoadingWhileUploading, setIsLoadingWhileUploading] = useState(false);
+  const [isSuccessUploadingFile, setIsSuccessUploadingFile] = useState(false);
+  const [isSuccessCheckout, setisSuccessCheckout] = useState(false);
   const token = useLogin((state) => state.token);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [orderId, setOrderId] = useState("");
@@ -38,6 +57,7 @@ export default function Page() {
   const setPrice = useSimulation((state) => state.setCheckout);
   const printingType = useSimulation((state) => state.printingType);
   const calculatedPrice = useSimulation((state) => state.checkoutPrice);
+  const router = useRouter();
 
   const form = useForm<PriceSimulationForm>({
     resolver: zodResolver(priceSimulationSchema),
@@ -51,6 +71,7 @@ export default function Page() {
   });
 
   const onSubmit = async (data: PriceSimulationForm) => {
+    console.log(data);
     const selectedPaper = paperType.find((p) => p.type === data.paperType);
     const selectedFinishing = finishingOption.find(
       (f) => f.type === data.finishing
@@ -68,6 +89,7 @@ export default function Page() {
     try {
       if (selectedFile) {
         toast.loading("Uploading file...");
+        setIsLoadingWhileUploading(true);
         const checkout = await uploadFileCheckout(
           selectedFile,
           token as string
@@ -76,9 +98,12 @@ export default function Page() {
       }
 
       toast.dismiss();
+      setIsLoadingWhileUploading(false);
+      setIsSuccessUploadingFile(true);
       toast.success("Berhasil upload file");
     } catch (err: unknown) {
       toast.dismiss();
+      setIsLoadingWhileUploading(false);
       toast.error(
         err instanceof Error ? err.message : "Unexpected server error"
       );
@@ -87,7 +112,8 @@ export default function Page() {
 
   const handleCheckout = async () => {
     try {
-      await createCheckout(
+      setisSuccessCheckout(true);
+      const data = await createCheckout(
         {
           fieldId: orderId,
           sheetCount: form.getValues("sheetCount"),
@@ -99,8 +125,12 @@ export default function Page() {
         },
         token as string
       );
+
+      router.push(`/checkout/${data.id}`);
+      setisSuccessCheckout(false);
     } catch (err: unknown) {
       toast.dismiss();
+      setisSuccessCheckout(false);
       toast.error(
         err instanceof Error ? err.message : "Unexpected server error"
       );
@@ -126,11 +156,10 @@ export default function Page() {
                 Jumlah Halaman
               </label>
               <input
+                required
                 type="number"
                 placeholder="Enter sheet count"
-                {...form.register("sheetCount", {
-                  valueAsNumber: true,
-                })}
+                {...form.register("sheetCount", { valueAsNumber: true })}
                 className="w-full p-2 border border-gray-300 rounded-lg"
               />
               {form.formState.errors.sheetCount && (
@@ -144,54 +173,87 @@ export default function Page() {
               <label className="block text-gray-600 font-medium mb-2">
                 Jenis Kertas
               </label>
-              <select
-                {...form.register("paperType")}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Choose paper type</option>
-                {paperType.map((item, index) => (
-                  <option key={index} value={item.type}>
-                    {item.type}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={form.control}
+                name="paperType"
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih jenis kertas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paperType.map((item, index) => (
+                        <SelectItem key={index} value={item.type}>
+                          {item.type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.paperType && (
+                <p className="text-red-500 text-sm mt-1">
+                  {form.formState.errors.paperType.message}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-gray-600 font-medium mb-2">
                 Finishing
               </label>
-              <select
-                {...form.register("finishing")}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Choose finishing</option>
-                {finishingOption.map((item, index) => (
-                  <option key={index} value={item.type}>
-                    {item.type}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={form.control}
+                name="finishing"
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih finishing" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {finishingOption.map((item, index) => (
+                        <SelectItem key={index} value={item.type}>
+                          {item.type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.finishing && (
+                <p className="text-red-500 text-sm mt-1">
+                  {form.formState.errors.finishing.message}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-gray-600 font-medium mb-2">
                 Print duplex atau simplex
               </label>
-              <select
-                {...form.register("printingType")}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Pilih tipe print</option>
-                {printingType.map((item, index) => (
-                  <option key={index} value={item.type}>
-                    {item.type}
-                  </option>
-                ))}
-              </select>
-              <div className="text-balance ps-2 pt-2 text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-                *Harga sama saja{" "}
-              </div>
+              <Controller
+                control={form.control}
+                name="printingType"
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih tipe print" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {printingType.map((item, index) => (
+                        <SelectItem key={index} value={item.type}>
+                          {item.type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.printingType && (
+                <p className="text-red-500 text-sm mt-1">
+                  {form.formState.errors.printingType.message}
+                </p>
+              )}
             </div>
 
             <div>
@@ -200,20 +262,14 @@ export default function Page() {
               </label>
               <input
                 type="number"
-                placeholder="Enter sheet count"
-                {...form.register("quantity", {
-                  valueAsNumber: true,
-                })}
+                placeholder="Enter quantity"
+                {...form.register("quantity", { valueAsNumber: true })}
                 className="w-full p-2 border border-gray-300 rounded-lg"
               />
-              {form.formState.errors.quantity && (
-                <p className="text-red-500 text-sm mt-1">
-                  {form.formState.errors.quantity.message}
-                </p>
-              )}
             </div>
 
             <input
+              required
               type="file"
               onChange={(e) => {
                 if (e.target.files && e.target.files.length > 0) {
@@ -223,9 +279,19 @@ export default function Page() {
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
 
-            <Button type="submit" className="w-full">
-              Submit
-            </Button>
+            {isSuccessUploadingFile ? (
+              <Button type="submit" className="w-full" disabled>
+                Submit
+              </Button>
+            ) : (
+              <Button type="submit" className="w-full">
+                {isLoadingWhileUploading ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  "Submit"
+                )}
+              </Button>
+            )}
           </form>
         </div>
 
@@ -252,18 +318,40 @@ export default function Page() {
             </h2>
             <p className="text-gray-600">Total Price:</p>
             <p className="text-xl font-bold text-gray-800">
-              Rp.{calculatedPrice}
+              Rp.{(calculatedPrice && calculatedPrice) || "0"}
             </p>
-            <Button
-              className="w-full"
-              variant="secondary"
-              onClick={handleCheckout}
-            >
-              Checkout
-            </Button>
-            <Button className="w-full" onClick={handleCheckout}>
-              Checkout
-            </Button>
+            {isSuccessUploadingFile ? (
+              <div className="flex flex-row w-full gap-3 pt-3">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={handleCheckout}
+                >
+                  Masukan Keranjang
+                </Button>
+                <Button className="w-full" onClick={handleCheckout}>
+                  {isSuccessCheckout ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    "Checkout"
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-row w-full gap-3 pt-3">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={handleCheckout}
+                  disabled
+                >
+                  Masukan Keranjang
+                </Button>
+                <Button className="w-full" onClick={handleCheckout} disabled>
+                  Checkout
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

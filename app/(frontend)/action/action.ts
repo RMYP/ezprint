@@ -62,7 +62,7 @@ export const createCheckout = async (data: createOrder, token: string) => {
     if (response.status !== 201) {
       throw new Error(response.data.message || "Upload failed");
     }
-    return;
+    return response.data.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
       console.error("Axios error:", err.response?.data || err.message);
@@ -103,15 +103,20 @@ export const uploadFileCheckout = async (data: File, token: string) => {
   }
 };
 
-export const getTransaction = async (id: string, token: string) => {
+export const getTransaction = async (id: string) => {
   try {
-    const response = await axios.get(`/api/v1/payment/check-transaction/${id}`, {
-      headers: {
-        Authorization: `${token}`,
-      },
-    });
+    const response = await axios.get(
+      `/api/v1/payment/check-transaction/${id}`,
+      {
+        withCredentials: true,
+      }
+    );
 
-    return response.data.data;    
+    if (response.status !== 200) {
+      throw new Error(response.data.message || "Get transaction failed");
+    }
+
+    return response.data.data;
   } catch (err: unknown) {
     const error = axiosErrorHandler(err);
     throw new Error(error);
@@ -123,5 +128,74 @@ const axiosErrorHandler = (err: unknown) => {
     return err.response?.data?.message || "Request server error, try again";
   } else {
     return "Unexpected server error";
+  }
+};
+
+// checkout
+
+export const handleBankCheckout = async (
+  id: string,
+  bank: string,
+  paymentType: string
+) => {
+  try {
+    const response = await axios.post(
+      `/api/v1/payment/new`,
+      { id, bank, paymentType },
+      { withCredentials: true }
+    );
+
+    const data = {
+      oderId: response.data.data.order_id,
+      transaction_id: response.data.data.transaction_id,
+    };
+
+    return data;
+  } catch (err: unknown) {
+    console.log(err);
+    const error = axiosErrorHandler(err);
+    throw new Error(error);
+  }
+};
+
+export const getVaNumber = async (orderId: string, transactionId: string) => {
+  try {
+    const response = await axios.post(
+      "/api/v1/payment/check-va-transaction",
+      { orderId, transactionId },
+      {
+        withCredentials: true,
+      }
+    );
+
+    if (response.data.status !== 200) {
+      throw new Error(response.data.message);
+    }
+
+    return response.data.data;
+  } catch (err: unknown) {
+    console.log(err);
+    const error = axiosErrorHandler(err);
+    throw new Error(error);
+  }
+};
+
+// chart
+
+export const getChart = async () => {
+  try {
+    const response = await axios.get("/api/v1/order/get-all", {
+      withCredentials: true,
+    });
+
+    if (response.data.status !== 200) {
+      console.log(response.data)
+      throw new Error(response.data.message);
+    }
+
+    return response.data.data;
+  } catch (err: unknown) {
+    const error = axiosErrorHandler(err);
+    throw new Error(error);
   }
 };

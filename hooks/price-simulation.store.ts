@@ -43,9 +43,7 @@ export const useSimulation = create<PriceSimulation>((set) => ({
     set(() => ({ price: total }));
   },
   setCheckout: (sheet, papperPrice, finishingPrice, quantity) => {
-    console.log("masuk")
     const price = sheet * papperPrice + finishingPrice;
-    console.log(price)
     const totalPrice = price * quantity;
     set(() => ({ checkoutPrice: totalPrice }));
   },

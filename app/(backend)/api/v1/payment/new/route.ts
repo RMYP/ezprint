@@ -50,16 +50,31 @@ export async function POST(request: Request) {
 
     const createCharge = await coreAPI.charge(chargePayload);
 
+    const vaNumber =
+      bank == "mandiri"
+        ? createCharge.bill_key
+        : bank == "permata"
+        ? createCharge.permata_va_number
+        : createCharge.va_numbers[0].va_number;
+
+    const formattedPayment = new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(Number(createCharge.gross_amount));
+
     await prisma.payment.create({
       data: {
         id: uuidv4(),
         transactionId: createCharge.transaction_id,
         orderId: getOrder.id,
-        grossAmount: createCharge.gross_amount,
+        grossAmount: formattedPayment,
         paymentType: createCharge.payment_type,
         transactionTime: new Date(createCharge.transaction_time).toISOString(),
         expiryTime: new Date(createCharge.expiry_time).toISOString(),
         transactionStatus: createCharge.transaction_status,
+        vaNumber: vaNumber,
+        bank: bank,
       },
     });
 

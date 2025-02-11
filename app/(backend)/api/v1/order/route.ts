@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       where: {
         id: fieldId,
       },
-      
+
       data: {
         sheetCount: sheetCount,
         paperType: paperType,
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         quantity: quantity,
         printType: printType,
         totalPrice: totalPrice,
-        status: false,
+        status: "confirm",
         paymentStatus: false,
       },
     });

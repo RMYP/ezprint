@@ -19,7 +19,6 @@ export async function POST(request: Request) {
 
     const token = request.headers.get("cookie")?.split("_token=")[1];
 
-    console.log(token);
     if (!token) {
       return Response.json(
         { status: 401, success: false, message: "Unauthorized access!" },
@@ -48,7 +47,9 @@ export async function POST(request: Request) {
     const orderPromise = prisma.order.create({
       data: {
         documentPath: filePath,
+        documentName: file.name,
         userId: decodeJwt.id,
+        orderDate: new Date()
       },
     });
 

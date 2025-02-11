@@ -22,6 +22,13 @@ enum TransactionStatus {
   expire
 }
 
+enum OrderProgress {
+  confirm
+  onProgress
+  deny
+  finished
+}
+
 model Auth {
   id       String @unique @default(cuid())
   userId   String @unique
@@ -39,18 +46,20 @@ model User {
 }
 
 model Order {
-  id            String    @unique @default(cuid())
+  id            String         @unique @default(cuid())
   sheetCount    Int?
   paperType     String?
   finishing     String?
   quantity      Int?
   printType     String?
   totalPrice    Int?
-  status        Boolean?
+  status        OrderProgress?
   paymentStatus Boolean?
   documentPath  String
+  documentName  String
   userId        String
-  user          User      @relation(fields: [userId], references: [id])
+  orderDate     DateTime
+  user          User           @relation(fields: [userId], references: [id])
   Payment       Payment[]
 }
 
@@ -63,5 +72,7 @@ model Payment {
   paymentType       String
   transactionTime   DateTime
   expiryTime        DateTime
+  vaNumber          String
+  bank              String
   transactionStatus TransactionStatus
 }
