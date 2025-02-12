@@ -19,6 +19,7 @@ export const coreAPI = new MidtransClient.CoreApi({
   clientKey: MidtransClientKey,
 });
 
+
 export const regularBankParameter = (
   paymentType: string,
   bank: string,

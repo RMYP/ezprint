@@ -11,7 +11,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { usePaymentInstruction } from "@/hooks/how-to-pay.store";
-import { getVaNumber } from "@/app/(frontend)/action/action";
+import {
+  getVaNumber,
+  getCheckPaymentStatus,
+} from "@/app/(frontend)/action/action";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 
@@ -20,6 +23,7 @@ interface VirtualAccountNumber {
   bank: string;
   expiryTime: string;
   totalPayment: string;
+  transactionId: string;
 }
 
 interface SSEStatus {
@@ -76,11 +80,22 @@ export default function Page({
     };
   }, []);
 
-  console.log(notification)
-  if (notification?.status) {
-    router.push("/home");
-  }
+  useEffect(() => {
+    if (notification?.status) {
+      router.push("/home");
+    }
+  }, [notification]);
 
+  const getTransactionStatus = async () => {
+    try {
+      if (virtualAccountNumber && virtualAccountNumber.transactionId) {
+        await getCheckPaymentStatus(virtualAccountNumber?.transactionId);
+      }
+    } catch (err: unknown) {
+      console.log(err);
+    }
+  };
+  
   return (
     <div>
       <Navbar props={"bg-white mb-5"} />
@@ -132,7 +147,11 @@ export default function Page({
           </div>
 
           <div className="flex flex-row gap-2">
-            <Button className="w-full" variant="outline">
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => getTransactionStatus()}
+            >
               Cek Status Pembayaran
             </Button>
             <Button className="w-full">Pesan lagi</Button>

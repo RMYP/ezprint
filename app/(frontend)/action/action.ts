@@ -180,6 +180,27 @@ export const getVaNumber = async (orderId: string, transactionId: string) => {
   }
 };
 
+export const getCheckPaymentStatus = async (id: string) => {
+  try {
+    const response = await axios.get(
+      `/api/v1/payment/check-payment-status/${id}`,
+      {
+        withCredentials: true,
+      }
+    );
+
+    if (response.data.status == 200 || response.status == 307) {
+      return response.data;
+    }
+
+    throw new Error(response.data.message);
+  } catch (err: unknown) {
+    console.log(err);
+    const error = axiosErrorHandler(err);
+    throw new Error(error);
+  }
+};
+
 // chart
 
 export const getChart = async () => {
@@ -189,7 +210,7 @@ export const getChart = async () => {
     });
 
     if (response.data.status !== 200) {
-      console.log(response.data)
+      console.log(response.data);
       throw new Error(response.data.message);
     }
 

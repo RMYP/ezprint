@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       bank: checkVa.bank,
       expiryTime: finalFormat,
       totalPayment: checkVa.grossAmount,
+      transactionId: checkVa.transactionId
     };
 
     return httpResponse(200, true, "Success get data", payload);
