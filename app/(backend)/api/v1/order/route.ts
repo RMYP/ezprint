@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         quantity: quantity,
         printType: printType,
         totalPrice: totalPrice,
-        status: "confirm",
+        status: "waitingCheckout",
         paymentStatus: false,
       },
     });

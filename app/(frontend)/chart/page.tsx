@@ -11,9 +11,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 import { Button } from "@/components/ui/button";
-import { Trash, ShoppingCart } from "lucide-react";
+import { Trash, ShoppingCart, Pencil } from "lucide-react";
 
 import { getChart } from "../action/action";
 import { useEffect, useState } from "react";
@@ -21,6 +29,7 @@ import { useRouter } from "next/navigation";
 
 interface PaymentList {
   id: String;
+  transactionId: String;
   orderId: String;
   grossAmount: String;
   paymentType: String;
@@ -48,7 +57,7 @@ interface ChartList {
 }
 
 export default function Page() {
-  const router = useRouter()
+  const router = useRouter();
   const [chartList, setCartList] = useState<ChartList[]>();
 
   useEffect(() => {
@@ -69,13 +78,14 @@ export default function Page() {
       {chartList ? (
         <div className="max-w-7xl mx-auto bg-white px-5 lg:px-10 lg:pt-5">
           <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-            Daftar Pesanan
+            Keranjang Pesanan
           </h2>
           <Table className="hidden sm:table">
-            <TableCaption>Daftar pesanan</TableCaption>
+            <TableCaption>Keranjang pesanan</TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">Tanggal Pemesanan</TableHead>
+                <TableHead className="w-[150px]">Tanggal Pemesanan</TableHead>
+                <TableHead>Detail</TableHead>
                 <TableHead>Nama Dokumen</TableHead>
                 <TableHead>Status Pesanan</TableHead>
                 <TableHead className="text-right">Harga</TableHead>
@@ -85,10 +95,34 @@ export default function Page() {
             <TableBody>
               {chartList &&
                 chartList
-                  .filter((item) => !item.paymentStatus) 
+                  .filter((item) => !item.paymentStatus)
                   .map((item, index) => (
                     <TableRow key={index}>
                       <TableCell className="font-medium">05-02-2024</TableCell>
+                      <TableCell className="font-medium">
+                        <Dialog>
+                          <DialogTrigger>
+                            <Button>
+                              <Pencil />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>
+                                Detail Pesanan
+                              </DialogTitle>
+                              <DialogDescription>
+                                This action cannot be undone. This will
+                                permanently delete your account and remove your
+                                data from our servers.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div>
+                              lorem
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
                       <TableCell>{item.documentName}</TableCell>
                       <TableCell>
                         {item.Payment && item.Payment.length > 0 ? (
@@ -125,10 +159,46 @@ export default function Page() {
                           <Button variant="destructive">
                             <Trash size={16} className="mr-1" />
                           </Button>
-                          <Button variant="outline" onClick={() => router.push(`/checkout/${item.id}`)}>
-                            <ShoppingCart />
-                            Checkout
-                          </Button>
+                          {item.Payment?.[0]?.transactionStatus ===
+                          "pending" ? (
+                            <Button
+                              variant="outline"
+                              className="w-[125px] justify-between border-green-500"
+                              onClick={() =>
+                                router.push(
+                                  `/checkout/payment/${item.Payment[0].transactionId}/${item.id}`
+                                )
+                              }
+                            >
+                              <ShoppingCart />
+                              Bayar
+                            </Button>
+                          ) : item.Payment?.[0]?.transactionStatus ===
+                              "cancel" ||
+                            item.Payment?.[0]?.transactionStatus ===
+                              "expire" ? (
+                            <Button
+                              variant="outline"
+                              className="w-[125px] justify-between border-red-200"
+                              onClick={() =>
+                                router.push(`/checkout/${item.id}`)
+                              }
+                            >
+                              <ShoppingCart />
+                              Bayar Ulang
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              className="w-[125px] justify-between border-yellow-400"
+                              onClick={() =>
+                                router.push(`/checkout/${item.id}`)
+                              }
+                            >
+                              <ShoppingCart />
+                              Checkout
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

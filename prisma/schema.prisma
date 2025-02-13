@@ -23,7 +23,9 @@ enum TransactionStatus {
 }
 
 enum OrderProgress {
-  confirm
+  waitingCheckout
+  waitingPayment
+  confirmOrder
   onProgress
   deny
   finished

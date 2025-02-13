@@ -71,7 +71,6 @@ export default function Page() {
   });
 
   const onSubmit = async (data: PriceSimulationForm) => {
-    console.log(data);
     const selectedPaper = paperType.find((p) => p.type === data.paperType);
     const selectedFinishing = finishingOption.find(
       (f) => f.type === data.finishing

@@ -50,8 +50,6 @@ export async function GET(
       return NextResponse.redirect(AfterPayment);
     }
 
-    console.log(`${MidtransBaseUrl}/v2/${id}/status`);
-    console.log(`Basic ${MidtransServerKey}`);
     const getTransaction = await axios.get(
       `${MidtransBaseUrl}/v2/${id}/status`,
       {
