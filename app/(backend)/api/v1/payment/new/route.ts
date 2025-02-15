@@ -63,22 +63,28 @@ export async function POST(request: Request) {
       minimumFractionDigits: 0,
     }).format(Number(createCharge.gross_amount));
 
-    await prisma.payment.create({
-      data: {
-        id: uuidv4(),
-        transactionId: createCharge.transaction_id,
-        orderId: getOrder.id,
-        grossAmount: formattedPayment,
-        paymentType: createCharge.payment_type,
-        transactionTime: new Date(createCharge.transaction_time).toISOString(),
-        expiryTime: new Date(createCharge.expiry_time).toISOString(),
-        transactionStatus: createCharge.transaction_status,
-        vaNumber: vaNumber,
-        bank: bank,
-      },
-    });
+    await prisma.$transaction([
+      prisma.order.update({
+        where: { id },
+        data: { status: "waitingPayment" },
+      }),
+      prisma.payment.create({
+        data: {
+          id: uuidv4(),
+          transactionId: createCharge.transaction_id,
+          orderId: getOrder.id,
+          grossAmount: formattedPayment,
+          paymentType: createCharge.payment_type,
+          transactionTime: new Date(createCharge.transaction_time), 
+          expiryTime: new Date(createCharge.expiry_time), 
+          transactionStatus: createCharge.transaction_status,
+          vaNumber,
+          bank,
+        },
+      }),
+    ]);
 
-    createCharge.order_id = getOrder.id
+    createCharge.order_id = getOrder.id;
 
     return httpError(200, true, "Charge Created Successfully", createCharge);
   } catch (err: unknown) {

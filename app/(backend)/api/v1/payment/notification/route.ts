@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       gross_amount,
       signature_key,
       transaction_status,
-      transaction_id
+      transaction_id,
     } = payload;
 
     const expectedSignature = generateSignature(
@@ -48,28 +48,31 @@ export async function POST(request: Request) {
 
     const getId = await prisma.payment.findFirst({
       where: {
-        transactionId: transaction_id
-      }
-    })
+        transactionId: transaction_id,
+      },
+    });
 
-    await prisma.$transaction([
-      prisma.payment.updateMany({
-        where: { transactionId: transaction_id },
-        data: { transactionStatus: transaction_status },
-      }),
-      prisma.order.update({
-        where: { id: getId?.orderId },
-        data: {
-          paymentStatus: transaction_status === "settlement",
-          status: "onProgress",
-        },
-      }),
-    ]);
+    if (transaction_status === "settlement") {
+      await prisma.$transaction([
+        prisma.payment.updateMany({
+          where: { transactionId: transaction_id },
+          data: { transactionStatus: transaction_status },
+        }),
+        prisma.order.update({
+          where: { id: getId?.orderId },
+          data: {
+            paymentStatus: transaction_status === "settlement",
+            status: "onProgress",
+          },
+        }),
+      ]);
+    }
 
     return Response.json(
       { status: 200, message: "Notification processed" },
       { status: 200 }
     );
+    
   } catch (error) {
     console.error(error);
     return Response.json(

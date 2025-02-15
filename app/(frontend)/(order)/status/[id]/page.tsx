@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/exNavbar";
-import { CheckCircle, Circle } from "lucide-react";
-import { getChartById } from "../../action/action";
+import { CheckCircle, Circle, MapPinned } from "lucide-react";
+import { getChartById } from "../../../action/action";
 
 const stages = [
   "Belum Checkout",
@@ -44,6 +44,19 @@ export default function OrderProgressPage({
       try {
         const { id } = await params;
         const data = await getChartById(id);
+        const date = new Date(data.orderDate);
+        const newDate = date
+          .toLocaleString("id-ID", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZone: "Asia/Makassar",
+          })
+          .replace(/\//g, "-");
+        data.orderDate = newDate;
         setTransactionData(data);
 
         const statusMap: Record<string, number> = {
@@ -55,6 +68,7 @@ export default function OrderProgressPage({
         };
 
         if (data?.status in statusMap) {
+          console.log(data.status)
           setCurrentStage(statusMap[data.status]);
         }
       } catch (err) {
@@ -154,11 +168,29 @@ export default function OrderProgressPage({
         )}
 
         {/* Pickup Information */}
-        <div className="bg-white p-5 rounded-xl shadow-md">
-          <h2 className="text-lg font-semibold mb-2">Informasi Pengambilan</h2>
-          <p className="text-sm text-gray-700">
-            Silakan ambil pesanan Anda di lokasi toko terdekat.
-          </p>
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-lg font-semibold mb-3 text-gray-900">
+            🏪 Informasi Pengambilan
+          </h2>
+
+          <div className="bg-gray-100 p-4 rounded-lg">
+            <p className="text-sm text-gray-700">
+              Pesanan dapat diambil di{" "}
+              <span className="font-semibold text-gray-900">
+                Toko Rizki Putra
+              </span>
+            </p>
+
+            <div className="flex items-center gap-3 mt-3">
+              <div className="bg-green-500 p-2 rounded-full text-white">
+                <MapPinned className="w-5 h-5" />
+              </div>
+              <p className="text-gray-800 text-sm">
+                Jl. Perjuangan, gg. Alam Segar 2 No.2, Sempaja Sel., Kec.
+                Samarinda Utara, Kota Samarinda, Kalimantan Timur 75117{" "}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

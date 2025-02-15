@@ -53,6 +53,7 @@ interface ChartList {
   documentPath: String;
   documentName: String;
   userId: String;
+  orderDate: String;
   Payment: PaymentList[];
 }
 
@@ -64,6 +65,7 @@ export default function Page() {
     const getChartList = async () => {
       try {
         const data = await getChart();
+
         setCartList(data);
       } catch (err: unknown) {
         console.log(err);
@@ -98,30 +100,18 @@ export default function Page() {
                   .filter((item) => !item.paymentStatus)
                   .map((item, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-medium">05-02-2024</TableCell>
                       <TableCell className="font-medium">
-                        <Dialog>
-                          <DialogTrigger>
-                            <Button>
-                              <Pencil />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>
-                                Detail Pesanan
-                              </DialogTitle>
-                              <DialogDescription>
-                                This action cannot be undone. This will
-                                permanently delete your account and remove your
-                                data from our servers.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div>
-                              lorem
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                        {item.orderDate.replace(
+                          /^(\d{4})-(\d{2})-(\d{2}).*$/,
+                          "$3-$2-$1"
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <Button
+                          onClick={() => router.push(`/status/${item.id}`)}
+                        >
+                          <Pencil />
+                        </Button>
                       </TableCell>
                       <TableCell>{item.documentName}</TableCell>
                       <TableCell>

@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import httpResponse from "@/lib/httpError";
 import { checkJwt } from "@/lib/jwtDecode";
+import { string } from "zod";
 
 export async function GET(
   request: Request,
@@ -33,7 +34,7 @@ export async function GET(
     if (!getData) {
       return httpResponse(404, false, "Not Found", null);
     }
-
+    
     return httpResponse(200, true, "Success get data", getData);
   } catch (err: unknown) {
     return httpResponse(
