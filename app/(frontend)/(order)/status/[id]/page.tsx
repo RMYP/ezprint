@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import Navbar from "@/components/exNavbar";
 import { CheckCircle, Circle, MapPinned } from "lucide-react";
 import { getChartById } from "../../../action/action";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const stages = [
   "Belum Checkout",
@@ -38,10 +39,12 @@ export default function OrderProgressPage({
     TransactionData | undefined
   >();
   const [currentStage, setCurrentStage] = useState(2);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const getData = async () => {
       try {
+        setIsLoading(true);
         const { id } = await params;
         const data = await getChartById(id);
         const date = new Date(data.orderDate);
@@ -68,10 +71,12 @@ export default function OrderProgressPage({
         };
 
         if (data?.status in statusMap) {
-          console.log(data.status)
+          console.log(data.status);
           setCurrentStage(statusMap[data.status]);
         }
+        setIsLoading(false);
       } catch (err) {
+        setIsLoading(false);
         console.error("Error fetching transaction data:", err);
       }
     };
@@ -121,50 +126,64 @@ export default function OrderProgressPage({
           </div>
         </div>
 
-        {transactionData && (
+        {isLoading ? (
           <div className="bg-white p-5 rounded-xl shadow-md">
             <h2 className="text-lg font-semibold mb-4">Detail Pesanan</h2>
             <div className="grid grid-cols-2 gap-3 text-sm sm:text-base">
-              <p className="text-gray-600">Nama Produk:</p>
-              <p className="font-medium">{transactionData.documentName}</p>
-
-              <p className="text-gray-600">Jumlah Lembar:</p>
-              <p className="font-medium">{transactionData.sheetCount}</p>
-
-              <p className="text-gray-600">Jenis Kertas:</p>
-              <p className="font-medium">{transactionData.paperType}</p>
-
-              <p className="text-gray-600">Finishing:</p>
-              <p className="font-medium">{transactionData.finishing}</p>
-
-              <p className="text-gray-600">Jumlah:</p>
-              <p className="font-medium">{transactionData.quantity} pcs</p>
-
-              <p className="text-gray-600">Tipe Cetak:</p>
-              <p className="font-medium">{transactionData.printType}</p>
-
-              <p className="text-gray-600">Total Harga:</p>
-              <p className="font-semibold text-green-600">
-                Rp {transactionData.totalPrice.toLocaleString("id-ID")}
-              </p>
-
-              <p className="text-gray-600">Status Pembayaran:</p>
-              <p
-                className={`font-medium ${
-                  transactionData.paymentStatus
-                    ? "text-green-500"
-                    : "text-red-500"
-                }`}
-              >
-                {transactionData.paymentStatus
-                  ? "Sudah Dibayar"
-                  : "Belum Dibayar"}
-              </p>
-
-              <p className="text-gray-600">Tanggal Pemesanan:</p>
-              <p className="font-medium">{transactionData.orderDate}</p>
+              {[...Array(10)].map((_, i) => (
+                <Skeleton
+                  key={i}
+                  className="h-5 w-full rounded-md bg-gray-200"
+                />
+              ))}
             </div>
           </div>
+        ) : (
+          transactionData && (
+            <div className="bg-white p-5 rounded-xl shadow-md">
+              <h2 className="text-lg font-semibold mb-4">Detail Pesanan</h2>
+              <div className="grid grid-cols-2 gap-3 text-sm sm:text-base">
+                <p className="text-gray-600">Nama Produk:</p>
+                <p className="font-medium">{transactionData.documentName}</p>
+
+                <p className="text-gray-600">Jumlah Lembar:</p>
+                <p className="font-medium">{transactionData.sheetCount}</p>
+
+                <p className="text-gray-600">Jenis Kertas:</p>
+                <p className="font-medium">{transactionData.paperType}</p>
+
+                <p className="text-gray-600">Finishing:</p>
+                <p className="font-medium">{transactionData.finishing}</p>
+
+                <p className="text-gray-600">Jumlah:</p>
+                <p className="font-medium">{transactionData.quantity} pcs</p>
+
+                <p className="text-gray-600">Tipe Cetak:</p>
+                <p className="font-medium">{transactionData.printType}</p>
+
+                <p className="text-gray-600">Total Harga:</p>
+                <p className="font-semibold text-green-600">
+                  Rp {transactionData.totalPrice.toLocaleString("id-ID")}
+                </p>
+
+                <p className="text-gray-600">Status Pembayaran:</p>
+                <p
+                  className={`font-medium ${
+                    transactionData.paymentStatus
+                      ? "text-green-500"
+                      : "text-red-500"
+                  }`}
+                >
+                  {transactionData.paymentStatus
+                    ? "Sudah Dibayar"
+                    : "Belum Dibayar"}
+                </p>
+
+                <p className="text-gray-600">Tanggal Pemesanan:</p>
+                <p className="font-medium">{transactionData.orderDate}</p>
+              </div>
+            </div>
+          )
         )}
 
         {/* Pickup Information */}

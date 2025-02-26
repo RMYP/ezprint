@@ -202,25 +202,83 @@ export default function Page() {
               chartList.map((item, index) => (
                 <div className="border rounded-lg shadow-md p-4" key={index}>
                   <p className="text-sm font-semibold mb-1">
-                    Tanggal: 05-02-2024
+                    Tanggal:{" "}
+                    {item.orderDate.replace(
+                      /^(\d{4})-(\d{2})-(\d{2}).*$/,
+                      "$3-$2-$1"
+                    )}
                   </p>
                   <p className="text-md font-medium">{item.documentName}</p>
                   <p className="text-sm text-gray-600 mb-2">
                     Status:{" "}
-                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-                      Belum checkout
-                    </span>
+                    {item.Payment && item.Payment.length > 0 ? (
+                      item.Payment[0].transactionStatus === "pending" ? (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                          Menunggu Pembayaran
+                        </span>
+                      ) : item.Payment[0].transactionStatus === "settlement" ? (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                          Pembayaran Berhasil
+                        </span>
+                      ) : item.Payment[0].transactionStatus === "cancel" ||
+                        item.Payment[0].transactionStatus === "expire" ? (
+                        <span className="px-2 py-1 bg-red-100 text-red-900 rounded-full text-xs">
+                          {item.Payment[0].transactionStatus}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                          Pembayaran Berhasil
+                        </span>
+                      )
+                    ) : (
+                      <span className="px-2 py-1 bg-yellow-100 text-red-800 rounded-full text-xs">
+                        Belum Checkout
+                      </span>
+                    )}
                   </p>
                   <p className="text-right font-semibold text-lg">
                     Rp.{item.totalPrice}
                   </p>
                   <div className="flex justify-end gap-2 mt-3">
+                    <Button onClick={() => router.push(`/status/${item.id}`)} size="sm">
+                      <Pencil />
+                    </Button>
                     <Button variant="destructive" size="sm">
                       <Trash size={16} />
                     </Button>
-                    <Button variant="outline" size="sm">
-                      Checkout
-                    </Button>
+                    {item.Payment?.[0]?.transactionStatus === "pending" ? (
+                      <Button
+                        variant="outline"
+                        className="w-[125px] justify-between border-green-500"
+                        onClick={() =>
+                          router.push(
+                            `/checkout/payment/${item.Payment[0].transactionId}/${item.id}`
+                          )
+                        }
+                      >
+                        <ShoppingCart />
+                        Bayar
+                      </Button>
+                    ) : item.Payment?.[0]?.transactionStatus === "cancel" ||
+                      item.Payment?.[0]?.transactionStatus === "expire" ? (
+                      <Button
+                        variant="outline"
+                        className="w-[125px] justify-between border-red-200"
+                        onClick={() => router.push(`/checkout/${item.id}`)}
+                      >
+                        <ShoppingCart />
+                        Bayar Ulang
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="w-[125px] justify-between border-yellow-400"
+                        onClick={() => router.push(`/checkout/${item.id}`)}
+                      >
+                        <ShoppingCart />
+                        Checkout
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}

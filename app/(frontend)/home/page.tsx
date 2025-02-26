@@ -83,9 +83,9 @@ export default function HeroSection() {
               <Button className="px-6 py-3 bg-white text-zinc-700 font-semibold rounded-lg shadow-lg hover:bg-gray-100">
                 <Link href="/order">Pesan Sekarang</Link>
               </Button>
-              {/* <Button className="px-6 py-3 bg-transparent border border-white font-semibold rounded-lg hover:bg-white hover:text-blue-600">
-                Learn More
-              </Button> */}
+              <Button className="px-6 py-3 bg-transparent border border-white font-semibold rounded-lg hover:bg-white hover:text-blue-600">
+                Hubungi kami
+              </Button>
             </div>
           </div>
 

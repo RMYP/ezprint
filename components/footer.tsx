@@ -13,7 +13,7 @@ export default function Footer() {
         </div>
 
         {/* Navigation */}
-        <div className="flex-1">
+        <div className="flex-1 hidden lg:block md:block">
           <h3 className="text-lg font-semibold">Navigasi</h3>
           <ul className="mt-2 space-y-2 text-gray-800">
             <li>

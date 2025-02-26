@@ -240,3 +240,20 @@ export const getChartById = async (id: string) => {
     throw new Error(error);
   }
 };
+
+// Get Account
+
+export const getUserInfo = async (id: string) => {
+  try {
+    const response = await axios.get(`/api/v1/user/get-user/${id}`);
+    if (response.data.status !== 200) {
+      console.log(response.data);
+      throw new Error(response.data.message);
+    }
+
+    return response.data.data;
+  } catch (err: unknown) {
+    const error = axiosErrorHandler(err);
+    throw new Error(error);
+  }
+};
