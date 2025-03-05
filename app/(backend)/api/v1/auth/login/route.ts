@@ -36,6 +36,7 @@ export async function POST(request: Request) {
       id: checkAccount.user.id,
       email: checkAccount.email,
       user: checkAccount.user.username,
+      phone: checkAccount.user.phoneNum
     };
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });

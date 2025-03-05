@@ -1,4 +1,5 @@
 import axios, { AxiosError } from "axios";
+import { error } from "console";
 import { file } from "googleapis/build/src/apis/file";
 
 interface Login {
@@ -252,6 +253,31 @@ export const getUserInfo = async (id: string) => {
     }
 
     return response.data.data;
+  } catch (err: unknown) {
+    const error = axiosErrorHandler(err);
+    throw new Error(error);
+  }
+};
+
+// update user data
+
+export const updateUserData = async (
+  username: string,
+  phoneNum: string,
+  id: string
+) => {
+  try {
+    const response = await axios.patch(
+      "/api/v1/user/update-data",
+      { id, phoneNum, username },
+      {
+        withCredentials: true,
+      }
+    );
+    if (response.data.success == true) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message);
   } catch (err: unknown) {
     const error = axiosErrorHandler(err);
     throw new Error(error);

@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
           email: data.email,
           name: data.name,
           picture: data.picture,
+          phone: checkAuth?.user.phoneNum
         },
         JWT_SECRET,
         { expiresIn: "1d" }

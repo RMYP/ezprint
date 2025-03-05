@@ -9,31 +9,54 @@ import {
   LogoutButtonDekstop,
 } from "@/components/logoutButton";
 import { useRouter } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  ChevronLeft,
-  Pencil,
-  Settings,
-  Sliders,
-  LogOutIcon,
-} from "lucide-react";
+import { ChevronLeft, Pencil, Settings, Sliders } from "lucide-react";
 
+import { useEffect, useState } from "react";
 import { useLogin } from "@/hooks/user-store";
+import { updateUserData, getUserInfo } from "../../action/action";
 
 export default function ProfileEditPage() {
   const router = useRouter();
-  const user = {
-    username: useLogin((state) => state.name),
-    familyName: useLogin((state) => state.name),
-    phone: "0808080008",
-    email: useLogin((state) => state.email),
-    profilePic: useLogin((state) => state.name),
+  const userId = useLogin((state) => state.userId);
+  const [user, setUser] = useState({
+    username: "",
+    phoneNum: "",
+    email: "",
+  });
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        if (userId) {
+          const getUser = await getUserInfo(userId);
+          setUser({
+            username: getUser.username || "",
+            phoneNum: getUser.phoneNumber || "",
+            email: getUser.email || "",
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch user data", err);
+      }
+    };
+    fetchUserData();
+  }, [userId]);
+
+  const handleUpdateUser = async () => {
+    if (!userId) return;
+
+    try {
+      await updateUserData(user.username, user.phoneNum, userId);
+      alert("Profile updated successfully!");
+    } catch (err) {
+      console.error("Error updating profile", err);
+    }
   };
 
   return (
@@ -46,6 +69,7 @@ export default function ProfileEditPage() {
           <ChevronLeft className="mr-1" size={18} /> <p>Home</p>
         </Button>
       </div>
+
       <div className="max-w-7xl mx-auto p-4">
         {/* Navigation  mobile*/}
         <div className="flex items-center gap-4 mb-5 md:hidden sm:block">
@@ -63,11 +87,7 @@ export default function ProfileEditPage() {
                 <Settings className="mr-2" size={16} /> Account Settings
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <LogoutButtonMobile
-                  props={
-                    " text-red-600 rounded bg-white border-none flex flex-row gap-2"
-                  }
-                />
+                <LogoutButtonMobile props=" text-red-600 rounded bg-white border-none flex flex-row gap-2" />
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -75,63 +95,77 @@ export default function ProfileEditPage() {
 
         {/* Profile Form */}
         <div className="flex flex-col lg:flex-row gap-5 ">
-          <div className=" basis-1/4 bg-white rounded-xl shadow-md p-4 justify-center lg:flex md:flex flex-col h-fit hidden">
+          <div className="basis-1/4 bg-white rounded-xl shadow-md p-4 justify-center lg:flex md:flex flex-col h-fit hidden">
             <Link
-              href={"/profile"}
+              href="/profile"
               className="flex flex-row gap-3 items-center font-medium cursor-pointer hover:bg-muted py-3 px-2 rounded-lg"
             >
               <Pencil />
               <p className="text-md">Edit Profile</p>
             </Link>
             <Link
-              href={"/account"}
-              className="flex flex-row gap-3 items-center font-medium cursor-pointer hover:bg-muted py-3 px-2 rounded-lg "
+              href="/account"
+              className="flex flex-row gap-3 items-center font-medium cursor-pointer hover:bg-muted py-3 px-2 rounded-lg"
             >
               <Settings />
               <p className="text-md">Account Setting</p>
             </Link>
-            <LogoutButtonDekstop
-              props={
-                "flex flex-row gap-3 items-center font-medium cursor-pointer hover:bg-muted py-3 px-2 rounded-lg text-md"
-              }
-            />
+            <LogoutButtonDekstop props="flex flex-row gap-3 items-center font-medium cursor-pointer hover:bg-muted py-3 px-2 rounded-lg text-md" />
           </div>
+
           <div className="w-full">
             <Card className="p-1">
               <CardHeader>
                 <CardTitle>Edit Profile Data</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-black text-white p-2 rounded-md text-center font-semibold ">
+                <div className="bg-black text-white p-2 rounded-md text-center font-semibold">
                   Personal Data
                 </div>
 
                 <div className="mt-4 space-y-4">
                   <div>
                     <label className="block text-sm font-medium">
-                      Full Name
+                      Nama Pengguna
                     </label>
-                    <Input type="text" defaultValue={user.username} />
+                    <Input
+                      type="text"
+                      value={user.username}
+                      onChange={(e) =>
+                        setUser({ ...user, username: e.target.value })
+                      }
+                    />
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium">
-                      Family Name
+                      Nomor WA
                     </label>
-                    <Input type="text" defaultValue={user.familyName} />
+                    <Input
+                      type="number"
+                      value={user.phoneNum}
+                      onChange={(e) =>
+                        setUser({ ...user, phoneNum: e.target.value })
+                      }
+                    />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium">
-                      Phone Number
-                    </label>
-                    <Input type="number" defaultValue={user.phone} />
-                  </div>
+
                   <div>
                     <label className="block text-sm font-medium">Email</label>
-                    <Input type="email" defaultValue={user.email} />
+                    <Input
+                      type="email"
+                      value={user.email}
+                      onChange={(e) =>
+                        setUser({ ...user, email: e.target.value })
+                      }
+                    />
                   </div>
                 </div>
 
-                <Button className="w-full mt-6 bg-purple-600 hover:bg-purple-700">
+                <Button
+                  className="w-full mt-6 bg-purple-600 hover:bg-purple-700"
+                  onClick={handleUpdateUser}
+                >
                   Save Changes
                 </Button>
               </CardContent>

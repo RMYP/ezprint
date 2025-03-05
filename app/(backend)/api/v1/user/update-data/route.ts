@@ -1,10 +1,13 @@
 import httpResponse from "@/lib/httpError";
 import { checkJwt } from "@/lib/jwtDecode";
 import prisma from "@/lib/prisma";
+import * as jwt from "jsonwebtoken";
+import { JWT_SECRET } from "@/lib/envConfig";
+import { NextResponse } from "next/server";
 
-export async function PUT(request: Request) {
+export async function PATCH(request: Request) {
   try {
-    const { id, phoneNum, username } = await request.json();
+    const { id, phoneNum, username, email } = await request.json();
 
     if (!id) {
       return httpResponse(422, false, "Invalid input", null);
@@ -35,6 +38,11 @@ export async function PUT(request: Request) {
         username: username,
         phoneNum: phoneNum,
       },
+      select: {
+        id: true,
+        username: true,
+        phoneNum: true,  
+      },
     });
 
     if (!updateUser) {
@@ -42,11 +50,27 @@ export async function PUT(request: Request) {
     }
 
     const payload = {
-      username: updateUser.username,
+      id: updateUser.id,
+      user: updateUser.username,
+      email: email,
       phoneNum: updateUser.phoneNum,
     };
 
-    return httpResponse(200, true, "Success", payload);
+    const newToken = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
+
+    const response = NextResponse.json({
+      status: 201,
+      success: true,
+      message: "Login successful",
+    });
+
+    response.cookies.set("_token", `Bearer${newToken}`, {
+      httpOnly: true,
+      path: "/",
+      maxAge: 60 * 60 * 24,
+    });
+
+    return response;
   } catch (err: unknown) {
     return httpResponse(
       500,

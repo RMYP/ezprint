@@ -4,28 +4,35 @@ import { jwtDecode } from "jwt-decode";
 interface Login {
   token: string | undefined;
   loginStatus: boolean;
+  userId: string | undefined;
   email: string | undefined;
   name: string | undefined;
   phoneNum: string | undefined;
   verifyStatus: boolean;
+  setName: (name: string) => void;
+  setPhoneNum: (phoneNum: string) => void;
   setToken: () => void;
   refreshToken: () => void;
 }
 
 interface Jsonwebtoken {
+  id: string;
   exp: number;
   email: string;
   name: string;
-  phoneNum: string | undefined;
+  phone: string | undefined;
 }
 
 export const useLogin = create<Login>((set, get) => ({
   token: undefined,
   loginStatus: false,
+  userId: undefined,
   email: undefined,
   name: undefined,
   phoneNum: undefined,
   verifyStatus: false,
+  setName: (name: string) => ({ name: name }),
+  setPhoneNum: (phoneNum: string) => ({ phoneNum: phoneNum }),
   // this code will be use to check if token still valid or not
   setToken: async () => {
     const { token } = get();
@@ -45,20 +52,19 @@ export const useLogin = create<Login>((set, get) => ({
     }
 
     try {
-      console.log("Calling API to validate token...");
       const response = await fetch("/api/v1/auth/status");
       const data = await response.json();
       if (data.loggedIn) {
-        console.log(data.token)
         const decodedToken = jwtDecode(data.token) as Jsonwebtoken;
         set({
           token: data.token,
           loginStatus: true,
+          userId: decodedToken.id,
           email: decodedToken.email,
           name: decodedToken.name,
-          phoneNum: decodedToken.phoneNum,
+          phoneNum: decodedToken.phone,
         });
-        console.log(token)
+        console.log(token);
       } else {
         set({ token: undefined, loginStatus: false });
       }
@@ -66,7 +72,7 @@ export const useLogin = create<Login>((set, get) => ({
       set({ token: undefined, loginStatus: false });
     }
   },
-  // this will force the fe to refresh the token when user make a change in profile
+  // this will force the fe to refresh the token when user press the logout button
   // do this so the token from be will always be syncrone with fe
   refreshToken: async () => {
     console.log("ini");

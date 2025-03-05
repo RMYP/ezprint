@@ -35,9 +35,10 @@ export async function GET(request: Request) {
     }
 
     const payload = {
+      id: getUser.id,
       username: getUser.username,
       phoneNumber: getUser.phoneNum,
-      id: getUser.id,
+      email: getUser.Auth?.email,
     };
 
     return httpResponse(200, true, "Success", payload);
