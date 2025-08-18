@@ -32,6 +32,7 @@ export async function POST(request: Request) {
       MidtransServerKey
     );
 
+    console.log(payload)
     if (signature_key !== expectedSignature) {
       return Response.json(
         { status: 401, message: "Invalid signature" },

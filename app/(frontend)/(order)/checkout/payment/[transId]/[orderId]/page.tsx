@@ -88,6 +88,7 @@ export default function Page({
 
   const getTransactionStatus = async () => {
     try {
+      console.log(virtualAccountNumber)
       if (virtualAccountNumber && virtualAccountNumber.transactionId) {
         await getCheckPaymentStatus(virtualAccountNumber?.transactionId);
       }
