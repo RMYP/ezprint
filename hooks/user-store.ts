@@ -36,7 +36,6 @@ export const useLogin = create<Login>((set, get) => ({
   // this code will be use to check if token still valid or not
   setToken: async () => {
     const { token } = get();
-
     if (token) {
       try {
         const decodedToken = jwtDecode(token) as Jsonwebtoken;

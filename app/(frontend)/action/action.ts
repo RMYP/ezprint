@@ -40,7 +40,7 @@ export const tryRegister = async (data: Login) => {
     if (response.data.status !== 200) {
       throw new Error(response.data.message);
     }
-    return response.data.data;
+    return response.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
       console.error("Axios error:", err.response?.data || err.message);

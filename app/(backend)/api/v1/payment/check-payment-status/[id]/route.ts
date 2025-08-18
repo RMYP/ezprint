@@ -49,9 +49,11 @@ export async function GET(
     if (checkStatus?.transactionStatus == "settlement") {
       return NextResponse.redirect(AfterPayment);
     }
-
+    console.log("did it success?")
+console.log("no")
+console.log(MidtransBaseUrl)
     const getTransaction = await axios.get(
-      `${MidtransBaseUrl}/v2/${id}/status`,
+      `${MidtransBaseUrl}/v2/6fd73dc6-f72d-433b-a200-064e0e4a866c/status`,
       {
         headers: {
           accept: "application/json",
@@ -59,7 +61,8 @@ export async function GET(
         },
       }
     );
-
+console.log("yes")
+    console.log(getTransaction)
     if (getTransaction.data) {
       if (getTransaction.data.transaction_status == "settlement") {
         await prisma.payment.updateMany({
@@ -78,6 +81,7 @@ export async function GET(
     return NextResponse.redirect(AfterPayment);
     // return httpResponse(200, true, "Payment not verified", null);
   } catch (err: unknown) {
+    console.log(err)
     return httpResponse(
       500,
       false,

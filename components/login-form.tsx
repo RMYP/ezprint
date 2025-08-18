@@ -4,9 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import toast from "react-hot-toast";
 import { tryLogin } from "@/app/(frontend)/action/action";
-import { setCookie } from "cookies-next";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,12 +19,15 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+
+import { AlertCircleIcon } from "lucide-react";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
 export const loginSchema = z.object({
     email: z.string().email(),
@@ -45,11 +46,6 @@ export function LoginForm({
     const router = useRouter();
 
     useEffect(() => {
-        if (error) {
-            toast.error(error);
-        }
-        setError("");
-
         if (isLogin) {
             router.push("/home");
         }
@@ -81,7 +77,6 @@ export function LoginForm({
                 setError(err.message);
             } else {
                 setError("Unexpected Error, please try again");
-                console.log(err);
             }
             setIsLoading(false);
         }
@@ -160,6 +155,22 @@ export function LoginForm({
                                     <Button type="submit" className="w-full">
                                         Login
                                     </Button>
+                                )}
+
+                                {error && (
+                                    <Suspense>
+                                        <Alert
+                                            variant="destructive"
+                                            className="w-full"
+                                        >
+                                            <div className="flex gap-2 items-center">
+                                                <AlertCircleIcon />
+                                                <AlertTitle className="font-semibold">
+                                                    {error}.
+                                                </AlertTitle>
+                                            </div>
+                                        </Alert>
+                                    </Suspense>
                                 )}
                             </form>
                         </Form>

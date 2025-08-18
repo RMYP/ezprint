@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     return Response.json({
       status: 500,
       success: false,
-      message: err instanceof Error ? err.message : "Unexpected Error",
+      message: err ,
     });
   }
 }
