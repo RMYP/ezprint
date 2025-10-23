@@ -38,6 +38,7 @@ export default function Page({
 }) {
     const router = useRouter();
     const [notification, setNotification] = useState<SSEStatus | null>(null);
+    const [orderingId, setOrderingId] = useState("")
     const getPaymentInstruction = usePaymentInstruction(
         (state) => state.getPaymentInstruction
     );
@@ -51,6 +52,7 @@ export default function Page({
         const getParams = async () => {
             try {
                 const { transId, orderId } = await params;
+                setOrderingId(orderId)
                 const data = await getVaNumber(orderId, transId);
                 setVirtualAccountNumber(data);
                 getPaymentInstruction(data.bank);
@@ -89,11 +91,16 @@ export default function Page({
 
     const getTransactionStatus = async () => {
         try {
-            console.log("virtual account", virtualAccountNumber);
             if (virtualAccountNumber && virtualAccountNumber.transactionId) {
-                await getCheckPaymentStatus(
+                const isPaymentSuccess = await getCheckPaymentStatus(
                     virtualAccountNumber?.transactionId
                 );
+
+                if (isPaymentSuccess) {
+                    router.push(
+                        `/status/${orderingId}`
+                    );
+                }
             }
         } catch (err: unknown) {
             console.log(err);

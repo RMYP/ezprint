@@ -190,8 +190,8 @@ export const getCheckPaymentStatus = async (id: string) => {
       }
     );
 
-    if (response.data.status == 200 || response.status == 307) {
-      return response.data;
+    if (response.data.status == 201 || response.status == 307) {
+      return true;
     }
 
     throw new Error(response.data.message);
@@ -278,6 +278,26 @@ export const updateUserData = async (
       return response.data.data;
     }
     throw new Error(response.data.message);
+  } catch (err: unknown) {
+    const error = axiosErrorHandler(err);
+    throw new Error(error);
+  }
+};
+
+// Transaction
+
+export const getAllTransaction = async () => {
+  try {
+    const response = await axios.get("/api/v1/order/transaction", {
+      withCredentials: true,
+    });
+
+    if (response.data.status !== 200) {
+      console.log(response.data);
+      throw new Error(response.data.message);
+    }
+
+    return response.data.data;
   } catch (err: unknown) {
     const error = axiosErrorHandler(err);
     throw new Error(error);

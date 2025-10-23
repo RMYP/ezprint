@@ -11,14 +11,14 @@ export const MidtransClientKey = process.env.CLIENT_KEY as string;
 export const isProduction = process.env.IS_PRODUCTION == "true" ? true : false;
 export const MidtransBaseUrl = process.env.MidtransBaseUrl as string;
 export const AfterPayment = process.env.AFTER_PAYMENT as string;
-
+export const BaseUrl = process.env.BASE_URL as string;
 
 export const oauth2Client = new google.auth.OAuth2(
-  ClientId,
-  ClientSecret,
-  OauthCallbackUrl
+    ClientId,
+    ClientSecret,
+    OauthCallbackUrl
 );
 
-export const midtransCredential = Buffer.from(`${MidtransServerKey}:`).toString(
-  "base64"
+export const midtransCredential = Buffer.from(`${MidtransServerKey}:${MidtransClientKey}`).toString(
+    "base64"
 );
