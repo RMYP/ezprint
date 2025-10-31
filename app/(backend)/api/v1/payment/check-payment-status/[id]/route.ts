@@ -7,15 +7,16 @@ import {
     midtransCredential,
     BaseUrl,
 } from "@/lib/envConfig";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { checkJwt } from "@/lib/jwtDecode";
 
 export async function GET(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await params;
+
         if (!id) {
             return httpResponse(422, false, "Invalid status", null);
         }
