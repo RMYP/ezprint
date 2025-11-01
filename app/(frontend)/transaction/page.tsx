@@ -156,22 +156,18 @@ export default function Page() {
                     </Button>
                 </div>
             ) : (
-                /* ========================= */
-                /* 3️⃣ Cart Table with Data */
-                /* ========================= */
                 <div className="max-w-7xl mx-auto bg-white px-5 lg:px-10 lg:pt-5">
                     <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-                        Keranjang Pesanan
+                        Daftar Transaksi
                     </h2>
 
                     <Table className="hidden sm:table">
-                        <TableCaption>Keranjang pesanan</TableCaption>
+                        <TableCaption>Daftar Transaksi</TableCaption>
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[150px]">
                                     Tanggal Pemesanan
                                 </TableHead>
-                                <TableHead>Detail</TableHead>
                                 <TableHead>Nama Dokumen</TableHead>
                                 <TableHead>Status Pesanan</TableHead>
                                 <TableHead className="text-right">
@@ -191,89 +187,34 @@ export default function Page() {
                                             "$3-$2-$1"
                                         )}
                                     </TableCell>
-                                    <TableCell className="font-medium">
+                                    <TableCell>{item.documentName}</TableCell>
+                                    <TableCell>
+                                        {item.status == "onProgress" ? (
+                                            <span className="px-2 py-1 text-green-700 border rounded-md py-2 border-green-600">
+                                                Pesanan Diproses
+                                            </span>
+                                        ) : (
+                                            <span className="px-2 py-1 text-green-800 text-lg rounded-full">
+                                                {item.status}
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        Rp.{item.totalPrice}
+                                    </TableCell>
+                                    <TableCell>
                                         <Button
+                                            variant="outline"
+                                            className="w-full justify-between border-orange-500"
                                             onClick={() =>
                                                 router.push(
                                                     `/status/${item.id}`
                                                 )
                                             }
                                         >
-                                            <ListCollapse />
+                                            <ShoppingCart />
+                                            Lacak
                                         </Button>
-                                    </TableCell>
-                                    <TableCell>{item.documentName}</TableCell>
-                                    <TableCell>
-                                      {item.status == "onProgress" ? (
-                                        <span className="px-2 py-1 text-green-700 border rounded-md py-2 border-green-600">
-                                            Pesanan Diproses
-                                        </span>
-
-                                      ) : (
-                                        <span className="px-2 py-1 text-green-800 text-lg rounded-full">
-                                            {item.status}
-                                        </span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        Rp.{item.totalPrice}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-row justify-end gap-2">
-                                            <Button variant="destructive">
-                                                <Trash
-                                                    size={16}
-                                                    className="mr-1"
-                                                />
-                                            </Button>
-                                            {item.Payment?.[0]
-                                                ?.transactionStatus ===
-                                            "pending" ? (
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-[125px] justify-between border-green-500"
-                                                    onClick={() =>
-                                                        router.push(
-                                                            `/checkout/payment/${item.Payment[0].transactionId}/${item.id}`
-                                                        )
-                                                    }
-                                                >
-                                                    <ShoppingCart />
-                                                    Bayar
-                                                </Button>
-                                            ) : item.Payment?.[0]
-                                                  ?.transactionStatus ===
-                                                  "cancel" ||
-                                              item.Payment?.[0]
-                                                  ?.transactionStatus ===
-                                                  "expire" ? (
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-[125px] justify-between border-red-200"
-                                                    onClick={() =>
-                                                        router.push(
-                                                            `/checkout/${item.id}`
-                                                        )
-                                                    }
-                                                >
-                                                    <ShoppingCart />
-                                                    Bayar Ulang
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-[125px] justify-between border-yellow-400"
-                                                    onClick={() =>
-                                                        router.push(
-                                                            `/checkout/${item.id}`
-                                                        )
-                                                    }
-                                                >
-                                                    <ShoppingCart />
-                                                    Checkout
-                                                </Button>
-                                            )}
-                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

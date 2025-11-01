@@ -60,6 +60,8 @@ export default function Navbar({ props }: { props?: string }) {
     const pathname = usePathname();
     const router = useRouter();
     const getToken = useLogin((state) => state.setToken);
+    const userName = useLogin((state) => state.name)
+    const userEmail = useLogin((state) => state.email)
 
     useEffect(() => {
         getToken();
@@ -83,10 +85,10 @@ export default function Navbar({ props }: { props?: string }) {
                                 <SheetTitle className="hidden">Menu</SheetTitle>
                                 <div className="flex flex-col items-center text-center">
                                     <h2 className="text-xl font-semibold mt-2">
-                                        Rlexandra
+                                        {userName}
                                     </h2>
                                     <p className="text-sm text-gray-300">
-                                        rlexandra@gmail.com
+                                        {userEmail}
                                     </p>
                                 </div>
                                 <nav className="mt-6 space-y-4">

@@ -44,13 +44,6 @@ interface TransactionInterfaceDetail {
   printType: string;
 }
 
-interface PaymentPageProps {
-  params: {
-    id: string;
-  };
-}
-
-
 export default function PaymentPage({ params }: { params: Promise<{ id: string }> }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
