@@ -68,6 +68,10 @@ interface PaymentDetails {
     transactionStatus: TransactionStatus;
 }
 
+interface User {
+    email: string;
+}
+
 interface OrderDetails {
     id: string;
     sheetCount: number;
@@ -80,6 +84,7 @@ interface OrderDetails {
     paymentStatus: boolean;
     documentPath: string;
     documentName: string;
+    email: User;
     userId: string;
     orderDate: Date;
     user: UserDetails;
@@ -93,44 +98,43 @@ const statusOptions = [
     { value: OrderProgress.deny, label: "Ditolak" },
 ];
 
-// --- Mockup Data & Fungsi (Ganti dengan import asli Anda) ---
-const mockOrder: OrderDetails = {
-    id: "ord_12345ABC",
-    sheetCount: 150,
-    paperType: "80gsm",
-    finishing: "Jilid Soft Cover",
-    quantity: 2,
-    printType: "Cetak Dua Sisi (duplex)",
-    totalPrice: 86000,
-    status: OrderProgress.onProgress,
-    paymentStatus: true,
-    documentPath: "/files/skripsi-bab-1-revisi.pdf",
-    documentName: "skripsi-bab-1-revisi.pdf",
-    userId: "user_67890",
-    orderDate: new Date("2025-10-30T10:30:00Z"),
-    user: {
-        id: "user_67890",
-        username: "Budi Gunawan",
-        phoneNum: "081234567890",
-        Auth: {
-            email: "budi.gunawan@email.com",
-        },
-    },
-    Payment: [
-        {
-            id: "pay_XYZ",
-            transactionId: "mid_ABC123",
-            orderId: "ord_12345ABC",
-            grossAmount: "Rp 86.000",
-            paymentType: "bank_transfer",
-            transactionTime: new Date("2025-10-30T10:32:00Z"),
-            expiryTime: new Date("2025-10-31T10:32:00Z"),
-            vaNumber: "8800123456789",
-            bank: "bca",
-            transactionStatus: TransactionStatus.settlement,
-        },
-    ],
-};
+// const mockOrder: OrderDetails = {
+//     id: "ord_12345ABC",
+//     sheetCount: 150,
+//     paperType: "80gsm",
+//     finishing: "Jilid Soft Cover",
+//     quantity: 2,
+//     printType: "Cetak Dua Sisi (duplex)",
+//     totalPrice: 86000,
+//     status: OrderProgress.onProgress,
+//     paymentStatus: true,
+//     documentPath: "/files/skripsi-bab-1-revisi.pdf",
+//     documentName: "skripsi-bab-1-revisi.pdf",
+//     userId: "user_67890",
+//     orderDate: new Date("2025-10-30T10:30:00Z"),
+//     user: {
+//         id: "user_67890",
+//         username: "Budi Gunawan",
+//         phoneNum: "081234567890",
+//         Auth: {
+//             email: "budi.gunawan@email.com",
+//         },
+//     },
+//     Payment: [
+//         {
+//             id: "pay_XYZ",
+//             transactionId: "mid_ABC123",
+//             orderId: "ord_12345ABC",
+//             grossAmount: "Rp 86.000",
+//             paymentType: "bank_transfer",
+//             transactionTime: new Date("2025-10-30T10:32:00Z"),
+//             expiryTime: new Date("2025-10-31T10:32:00Z"),
+//             vaNumber: "8800123456789",
+//             bank: "bca",
+//             transactionStatus: TransactionStatus.settlement,
+//         },
+//     ],
+// };
 
 const getStatusLabel = (status: OrderProgress): string => {
     return (
@@ -139,7 +143,6 @@ const getStatusLabel = (status: OrderProgress): string => {
     );
 };
 
-// --- Helper Functions ---
 const formatPrice = (price: number | null | undefined) => {
     if (price === null || price === undefined) return "N/A";
     return new Intl.NumberFormat("id-ID", {
@@ -160,7 +163,6 @@ const formatDate = (date: Date | string | undefined) => {
     });
 };
 
-// --- Komponen Pembantu ---
 function DetailItem({
     icon: Icon,
     label,
@@ -183,10 +185,7 @@ function DetailItem({
     );
 }
 
-// --- Komponen Halaman Utama ---
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
-    // Hapus state 'orderId' jika tidak digunakan di tempat lain, atau biarkan.
-    // const [orderId, setOrderId] = useState(""); 
     const [order, setOrder] = useState<OrderDetails | null>(null);
 
     const [currentStatus, setCurrentStatus] = useState<OrderProgress | null>(
@@ -202,19 +201,15 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         const fetchOrder = async () => {
             setIsPageLoading(true); // Mulai loading di sini
             try {
-                const { id } = await params; // Ambil id
-                // setOrderId(id); // Anda masih bisa set state jika perlu
+                const { id } = await params;
 
                 if (id) {
-                    // === PERBAIKAN ===
-                    // Gunakan variabel 'id' langsung dari 'params'
-                    const data = await getOrderWorkingRoom(id); 
+                    const data = await getOrderWorkingRoom(id);
                     setOrder(data);
 
                     setCurrentStatus(data.status);
                     setSelectedStatus(data.status);
                 } else {
-                    // Tambahkan penanganan jika id tidak ada
                     console.error("No ID found in params");
                     setOrder(null);
                 }
@@ -226,8 +221,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             }
         };
         fetchOrder();
-    }, [params]); // === PERBAIKAN === Tambahkan 'params' sebagai dependency
+    }, [params]);
 
+    // mockup updateStatus
     const handleUpdateStatus = () => {
         if (!selectedStatus) {
             alert("Status yang dipilih tidak valid.");
@@ -250,10 +246,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                     selectedStatus
                 )}`
             );
-        }, 1000); // delay 1 detik
+        }, 1000);
     };
 
-    // Fungsi untuk simulasi download file
+    // Mockup simulasi download file
     const handleDownload = () => {
         if (!order) return;
         alert(
@@ -261,8 +257,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         );
     };
 
-    // === PERBAIKAN: Loading State ===
-    // Tampilkan loader jika halaman sedang memuat atau order belum ada
     if (isPageLoading || !order) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -272,8 +266,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         );
     }
 
-    // Jika data sudah ada, kita bisa aman mengakses 'order' dan 'payment'
     const payment = order.Payment[0];
+    console.log(order);
 
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
@@ -445,7 +439,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                                 icon={Hash}
                                 label="Email"
                                 // Perbaikan: Cek jika Auth ada sebelum mengakses email
-                                value={order.user.Auth?.email ?? "Email tidak tersedia"}
+                                value={
+                                    order.email.email ?? "Email tidak tersedia"
+                                }
                             />
                             <DetailItem
                                 icon={Hash}

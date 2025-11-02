@@ -17,12 +17,12 @@ import { useLogin } from "@/hooks/user-store"; //
 // import { createCheckout, uploadFileCheckout } from "../../action/action";
 
 const formatPrice = (price: number | null | undefined) => {
-  if (price === null || price === undefined) return "N/A";
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(price);
+    if (price === null || price === undefined) return "N/A";
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+    }).format(price);
 };
 
 // --- Import Komponen UI (Shadcn) ---
@@ -136,43 +136,9 @@ export default function OrderPageRedesign() {
         },
     });
 
-    // --- Efek untuk Kalkulasi Harga Real-time ---
-    // Mengamati perubahan pada form
-    const watchedValues = form.watch([
-        "sheetCount",
-        "paperType",
-        "finishing",
-        "quantity",
-    ]);
-
-    useEffect(() => {
-        const [sheetCount, paperTypeValue, finishingValue, quantity] =
-            watchedValues;
-
-        if (
-            sheetCount > 0 &&
-            paperTypeValue &&
-            finishingValue &&
-            quantity > 0
-        ) {
-            const selectedPaper = paperType.find(
-                (p) => p.type === paperTypeValue
-            );
-            const selectedFinishing = finishingOption.find(
-                (f) => f.type === finishingValue
-            );
-
-            if (selectedPaper && selectedFinishing) {
-                // Panggil store untuk menghitung harga
-                setCheckout(
-                    sheetCount,
-                    selectedPaper.price,
-                    selectedFinishing.price,
-                    quantity
-                ); //
-            }
-        }
-    }, [watchedValues, paperType, finishingOption, setCheckout]);
+    // --- Efek untuk Kalkulasi Harga Real-time (DIHAPUS) ---
+    // const watchedValues = form.watch([ ... ]);
+    // useEffect(() => { ... }, [watchedValues, ...]);
 
     // --- Handler Aksi ---
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,10 +147,52 @@ export default function OrderPageRedesign() {
         }
     };
 
+    // --- FUNGSI BARU UNTUK KALKULASI ---
+    const handleCalculatePrice = () => {
+        const {
+            sheetCount,
+            paperType: paperTypeValue,
+            finishing: finishingValue,
+            quantity,
+        } = form.getValues();
+
+        if (!sheetCount || !paperTypeValue || !finishingValue || !quantity) {
+            toast.error(
+                "Harap isi semua field konfigurasi (Jumlah Halaman, Kertas, Finishing, Kuantitas) untuk menghitung harga."
+            );
+            return;
+        }
+
+        const selectedPaper = paperType.find((p) => p.type === paperTypeValue);
+        const selectedFinishing = finishingOption.find(
+            (f) => f.type === finishingValue
+        );
+
+        if (selectedPaper && selectedFinishing) {
+            setCheckout(
+                sheetCount,
+                selectedPaper.price,
+                selectedFinishing.price,
+                quantity
+            );
+            toast.success("Harga berhasil dikalkulasi!");
+        } else {
+            toast.error(
+                "Gagal menghitung harga. Pastikan semua pilihan valid."
+            );
+        }
+    };
+
     // Fungsi Checkout Utama (Satu Tombol)
     const onSubmit = async (data: PriceSimulationForm) => {
         if (!selectedFile) {
             toast.error("Silakan pilih file dokumen Anda terlebih dahulu.");
+            return;
+        }
+
+        // Validasi jika harga belum dihitung
+        if (checkoutPrice === undefined || checkoutPrice === 0) {
+            toast.error("Harap klik 'Kalkulasi Harga' terlebih dahulu.");
             return;
         }
 
@@ -544,6 +552,16 @@ export default function OrderPageRedesign() {
                                     <span>{form.watch("quantity") || 0}x</span>
                                 </div>
                             </div>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={handleCalculatePrice}
+                            >
+                                Kalkulasi Harga
+                            </Button>
+
                             <Separator />
                             <div className="flex justify-between items-center">
                                 <span className="text-lg font-semibold">

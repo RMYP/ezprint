@@ -39,14 +39,18 @@ export async function GET(
         }
         const email = await prisma.auth.findUnique({
             where: {
-                id: orderDetail1.user.id,
+                userId: orderDetail1.user.id,
+            },
+            select: {
+                email: true,
             },
         });
 
+        console.log(email);
         const orderDetail = {
             ...orderDetail1,
-            email: email
-        }
+            email,
+        };
         if (!orderDetail1) {
             return httpResponse(404, false, "Not Found", null);
         }
