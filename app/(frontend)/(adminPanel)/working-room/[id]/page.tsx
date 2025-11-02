@@ -185,7 +185,8 @@ function DetailItem({
 
 // --- Komponen Halaman Utama ---
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
-    const [orderId, setOrderId] = useState("");
+    // Hapus state 'orderId' jika tidak digunakan di tempat lain, atau biarkan.
+    // const [orderId, setOrderId] = useState(""); 
     const [order, setOrder] = useState<OrderDetails | null>(null);
 
     const [currentStatus, setCurrentStatus] = useState<OrderProgress | null>(
@@ -199,16 +200,23 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
     useEffect(() => {
         const fetchOrder = async () => {
-            const id = (await params).id;
+            setIsPageLoading(true); // Mulai loading di sini
             try {
-                setOrderId(id);
+                const { id } = await params; // Ambil id
+                // setOrderId(id); // Anda masih bisa set state jika perlu
 
                 if (id) {
-                    const data = await getOrderWorkingRoom(orderId);
+                    // === PERBAIKAN ===
+                    // Gunakan variabel 'id' langsung dari 'params'
+                    const data = await getOrderWorkingRoom(id); 
                     setOrder(data);
 
                     setCurrentStatus(data.status);
                     setSelectedStatus(data.status);
+                } else {
+                    // Tambahkan penanganan jika id tidak ada
+                    console.error("No ID found in params");
+                    setOrder(null);
                 }
             } catch (err) {
                 console.error("Gagal memuat data order:", err);
@@ -218,7 +226,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             }
         };
         fetchOrder();
-    }, []);
+    }, [params]); // === PERBAIKAN === Tambahkan 'params' sebagai dependency
 
     const handleUpdateStatus = () => {
         if (!selectedStatus) {
@@ -436,7 +444,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                             <DetailItem
                                 icon={Hash}
                                 label="Email"
-                                value={order.user.Auth.email}
+                                // Perbaikan: Cek jika Auth ada sebelum mengakses email
+                                value={order.user.Auth?.email ?? "Email tidak tersedia"}
                             />
                             <DetailItem
                                 icon={Hash}
