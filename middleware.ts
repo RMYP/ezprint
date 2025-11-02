@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import { JWT_SECRET } from "./lib/envConfig";
 
+const JWT_SECRET = process.env.JWT_SECRET as string;
 async function verifyToken(token: string, secret: string) {
     try {
         const secretKey = new TextEncoder().encode(secret);

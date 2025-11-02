@@ -16,24 +16,26 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
+    
     const token = request.headers.get("cookie")?.split("_token=")[1];
-
+    
     if (!token) {
       return Response.json(
         { status: 401, success: false, message: "Unauthorized access!" },
         { status: 401 }
       );
     }
-
+    
     const decodeJwt = await checkJwt(token);
+    console.log("as")
     if (!decodeJwt?.id) {
       return Response.json(
         { status: 403, success: false, message: "Invalid Token" },
         { status: 403 }
       );
     }
-
+    
+    console.log(file, "As")
     const uploadDir = DocPath;
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });

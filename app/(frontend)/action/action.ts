@@ -95,6 +95,7 @@ export const uploadFileCheckout = async (data: File, token: string) => {
         });
 
         if (response.status !== 201) {
+            console.log(response)
             throw new Error(response.data.message || "Upload failed");
         }
 

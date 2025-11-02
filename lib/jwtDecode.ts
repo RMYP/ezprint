@@ -15,6 +15,7 @@ export async function checkJwt(token: string) {
     if (!token) return null;
     if (!token.startsWith("Bearer")) return null;
     const bearerToken = token.split("Bearer")[1];
+    console.log("checkjwt", bearerToken)
     const decoded = jwt.verify(bearerToken, JWT_SECRET) as JwtPayloadWithId;
     decoded.token = token;
     return decoded;

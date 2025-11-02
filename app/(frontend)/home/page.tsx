@@ -81,7 +81,7 @@ export default function HeroSection() {
 
             <div className="mt-6 flex gap-4">
               <Button className="px-6 py-3 bg-white text-zinc-700 font-semibold rounded-lg shadow-lg hover:bg-gray-100">
-                <Link href="/order">Pesan Sekarang</Link>
+                <Link href="/orderbeta">Pesan Sekarang</Link>
               </Button>
               <Button className="px-6 py-3 bg-transparent border border-white font-semibold rounded-lg hover:bg-white hover:text-blue-600">
                 Hubungi kami
