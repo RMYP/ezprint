@@ -1,22 +1,20 @@
 "use client";
 
 import Navbar from "@/components/exNavbar";
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Trash, ShoppingCart, ListCollapse } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card"; // Masih dipakai untuk empty state
+import {
+    ShoppingCart,
+    Calendar,
+    Package, // Ikon statis untuk "sedang diproses"
+    ChevronRight, // Ikon untuk indikator klik
+} from "lucide-react";
 import { getAllTransaction } from "../action/action";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+// Interface dari file asli
 interface PaymentList {
     id: string;
     transactionId: string;
@@ -47,6 +45,47 @@ interface ChartList {
     Payment: PaymentList[];
 }
 
+// --- Helper Baru ---
+
+// Helper untuk memformat harga
+const formatPrice = (price: string) => {
+    const numericPrice = Number(price);
+    if (isNaN(numericPrice)) return price;
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+    }).format(numericPrice);
+};
+
+// Helper untuk memformat tanggal
+const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+    });
+};
+
+// --- Komponen Skeleton Baru ---
+const TransactionSkeleton = () => (
+    <div className="flex items-center justify-between p-5 border-b border-gray-200">
+        <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="space-y-2">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-40" />
+            </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-4 w-16" />
+        </div>
+    </div>
+);
+
 export default function Page() {
     const router = useRouter();
     const [chartList, setCartList] = useState<ChartList[] | null>(null);
@@ -54,7 +93,7 @@ export default function Page() {
     useEffect(() => {
         const getChartList = async () => {
             try {
-                const data = await getAllTransaction();
+                const data = await getAllTransaction(); //
                 setCartList(data);
             } catch (err: unknown) {
                 console.error(err);
@@ -64,164 +103,113 @@ export default function Page() {
         getChartList();
     }, []);
 
+    // API Anda untuk rute ini hanya mengembalikan pesanan "onProgress"
+    //
+    const visibleItems = chartList || [];
+
     return (
-        <div className="space-y-5">
+        <div className="bg-muted/40 min-h-screen">
             <Navbar props={"bg-white"} />
 
-            {/* ========================= */}
-            {/* 1️⃣ Loading State */}
-            {/* ========================= */}
-            {!chartList ? (
-                <div className="max-w-7xl mx-auto bg-white px-5 lg:px-10 lg:pt-5">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-                        Daftar Transaksi
-                    </h2>
+            <div className="max-w-7xl mx-auto p-4 md:p-8">
+                <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">
+                    Pesanan Aktif
+                </h1>
 
-                    {/* Desktop Skeleton */}
-                    <div className="hidden sm:table w-full border-collapse">
-                        <div className="table-header-group">
-                            <div className="table-row">
-                                {[
-                                    "Tanggal Pemesanan",
-                                    "Nama Dokumen",
-                                    "Status Pesanan",
-                                    "Harga",
-                                    "Aksi",
-                                ].map((header, index) => (
-                                    <div
-                                        key={index}
-                                        className="table-cell font-semibold py-2 px-4"
-                                    >
-                                        {header}
-                                    </div>
-                                ))}
-                            </div>
+                {/* --- Kontainer List (Pengganti Kartu) --- */}
+                <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    {/* ========================= */}
+                    {/* 1. Loading State */}
+                    {/* ========================= */}
+                    {!chartList ? (
+                        <div className="divide-y divide-gray-200">
+                            <TransactionSkeleton />
+                            <TransactionSkeleton />
+                            <TransactionSkeleton />
                         </div>
-                        <div className="table-row-group">
-                            {Array.from({ length: 3 }).map((_, index) => (
-                                <div key={index} className="table-row">
-                                    <div className="table-cell py-4 px-4">
-                                        <Skeleton className="h-4 w-32" />
-                                    </div>
-                                    <div className="table-cell py-4 px-4">
-                                        <Skeleton className="h-4 w-40" />
-                                    </div>
-                                    <div className="table-cell py-4 px-4">
-                                        <Skeleton className="h-4 w-24" />
-                                    </div>
-                                    <div className="table-cell py-4 px-4 text-right">
-                                        <Skeleton className="h-4 w-20 ml-auto" />
-                                    </div>
-                                    <div className="table-cell py-4 px-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Skeleton className="h-8 w-8 rounded-md" />
-                                            <Skeleton className="h-8 w-20 rounded-md" />
+                    ) : /* ========================= */
+                    /* 2. Empty State */
+                    /* ========================= */
+                    visibleItems.length === 0 ? (
+                        <Card className="shadow-none border-none">
+                            <CardContent className="flex flex-col items-center justify-center py-20">
+                                <Package
+                                    size={64}
+                                    className="text-gray-400 mb-4"
+                                />
+                                <h3 className="text-xl font-semibold text-gray-800">
+                                    Tidak Ada Pesanan Aktif
+                                </h3>
+                                <p className="text-lg text-gray-500 mt-2">
+                                    Semua pesanan Anda sudah selesai atau belum
+                                    ada pesanan baru.
+                                </p>
+                                <Button
+                                    className="mt-6"
+                                    onClick={() => router.push("/orderbeta")}
+                                >
+                                    Buat Pesanan Baru
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        /* ========================= */
+                        /* 3. Data State (List) */
+                        /* ========================= */
+                        <div className="divide-y divide-gray-200">
+                            {visibleItems.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="flex items-center justify-between p-5 gap-4 hover:bg-gray-50/50 transition-colors cursor-pointer"
+                                    onClick={() =>
+                                        router.push(`/status/${item.id}`)
+                                    }
+                                >
+                                    {/* Bagian Kiri: Ikon & Detail */}
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-blue-100 rounded-lg">
+                                            <Package className="h-6 w-6 text-blue-700" />
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <h3 className="text-lg font-semibold text-gray-900 break-all">
+                                                {item.documentName}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                                <Calendar className="h-4 w-4" />
+                                                <span>
+                                                    {formatDate(item.orderDate)}
+                                                </span>
+                                            </p>
+                                            {/* Detail Pengisi Ruang Kosong */}
+                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 text-sm text-gray-700">
+                                                <span className="font-medium">
+                                                    {item.quantity} pcs
+                                                </span>
+                                                <span className="hidden md:inline text-gray-400">
+                                                    |
+                                                </span>
+                                                <span>{item.paperType}</span>
+                                                <span className="hidden md:inline text-gray-400">
+                                                    |
+                                                </span>
+                                                <span>{item.finishing}</span>
+                                            </div>
                                         </div>
                                     </div>
+
+                                    {/* Bagian Kanan: Harga & Indikator */}
+                                    <div className="flex items-center gap-4 flex-shrink-0">
+                                        <span className="text-lg font-bold text-gray-900 text-right">
+                                            {formatPrice(item.totalPrice)}
+                                        </span>
+                                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                                    </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
-
-                    {/* Mobile Skeleton */}
-                    <div className="sm:hidden space-y-4">
-                        {Array.from({ length: 3 }).map((_, index) => (
-                            <div
-                                key={index}
-                                className="border rounded-lg shadow-md p-4 space-y-3"
-                            >
-                                <Skeleton className="h-4 w-32" />
-                                <Skeleton className="h-5 w-40" />
-                                <Skeleton className="h-4 w-24" />
-                                <Skeleton className="h-6 w-20 ml-auto" />
-                                <div className="flex justify-end gap-2 mt-3">
-                                    <Skeleton className="h-8 w-8 rounded-md" />
-                                    <Skeleton className="h-8 w-20 rounded-md" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    )}
                 </div>
-            ) : chartList.length === 0 ? (
-                /* ========================= */
-                /* 2️⃣ Empty Cart State */
-                /* ========================= */
-                <div className="flex flex-col items-center justify-center py-20">
-                    <ShoppingCart size={64} className="text-gray-400 mb-4" />
-                    <p className="text-lg text-gray-500">
-                        Tidak ada pesanan di keranjang kamu.
-                    </p>
-                    <Button className="mt-4" onClick={() => router.push("/")}>
-                        Mulai Belanja
-                    </Button>
-                </div>
-            ) : (
-                <div className="max-w-7xl mx-auto bg-white px-5 lg:px-10 lg:pt-5">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-                        Daftar Transaksi
-                    </h2>
-
-                    <Table className="hidden sm:table">
-                        <TableCaption>Daftar Transaksi</TableCaption>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[150px]">
-                                    Tanggal Pemesanan
-                                </TableHead>
-                                <TableHead>Nama Dokumen</TableHead>
-                                <TableHead>Status Pesanan</TableHead>
-                                <TableHead className="text-right">
-                                    Harga
-                                </TableHead>
-                                <TableHead className="text-right">
-                                    Aksi
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {chartList.map((item, index) => (
-                                <TableRow key={index}>
-                                    <TableCell className="font-medium">
-                                        {item.orderDate.replace(
-                                            /^(\d{4})-(\d{2})-(\d{2}).*$/,
-                                            "$3-$2-$1"
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{item.documentName}</TableCell>
-                                    <TableCell>
-                                        {item.status == "onProgress" ? (
-                                            <span className="px-2 py-1 text-green-700 border rounded-md py-2 border-green-600">
-                                                Pesanan Diproses
-                                            </span>
-                                        ) : (
-                                            <span className="px-2 py-1 text-green-800 text-lg rounded-full">
-                                                {item.status}
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        Rp.{item.totalPrice}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full justify-between border-orange-500"
-                                            onClick={() =>
-                                                router.push(
-                                                    `/status/${item.id}`
-                                                )
-                                            }
-                                        >
-                                            <ShoppingCart />
-                                            Lacak
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            )}
+            </div>
         </div>
     );
 }

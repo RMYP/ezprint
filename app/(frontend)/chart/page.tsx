@@ -1,278 +1,395 @@
 "use client";
 
 import Navbar from "@/components/exNavbar";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Trash, ShoppingCart, ListCollapse } from "lucide-react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import {
+    Trash,
+    ShoppingCart,
+    FileText,
+    Calendar,
+    Clock,
+    AlertCircle,
+    Layers,
+    ClipboardList,
+    Search, // Ikon baru untuk "Lihat Detail"
+} from "lucide-react";
 import { getChart } from "../action/action";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Separator } from "@/components/ui/separator";
+import Link from "next/link"; // Tetap import Link
 
+// Interface dari file asli
 interface PaymentList {
-  id: string;
-  transactionId: string;
-  orderId: string;
-  grossAmount: string;
-  paymentType: string;
-  transactionTime: string;
-  expiryTime: string;
-  vaNumber: string;
-  bank: string;
-  transactionStatus: string;
+    id: string;
+    transactionId: string;
+    orderId: string;
+    grossAmount: string;
+    paymentType: string;
+    transactionTime: string;
+    expiryTime: string;
+    vaNumber: string;
+    bank: string;
+    transactionStatus: string;
 }
 
 interface ChartList {
-  id: string;
-  sheetCount: number;
-  paperType: string;
-  finishing: string;
-  quantity: number;
-  printType: string;
-  totalPrice: string;
-  status: string;
-  paymentStatus: boolean;
-  documentPath: string;
-  documentName: string;
-  userId: string;
-  orderDate: string;
-  Payment: PaymentList[];
+    id: string;
+    sheetCount: number;
+    paperType: string;
+    finishing: string;
+    quantity: number;
+    printType: string;
+    totalPrice: string;
+    status: string;
+    paymentStatus: boolean;
+    documentPath: string;
+    documentName: string;
+    userId: string;
+    orderDate: string;
+    Payment: PaymentList[];
 }
 
+// --- Helper Baru ---
+
+// Helper untuk memformat harga
+const formatPrice = (price: string | number) => {
+    const numericPrice = Number(price);
+    if (isNaN(numericPrice)) return price.toString();
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+    }).format(numericPrice);
+};
+
+// Helper untuk memformat tanggal
+const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+    });
+};
+
+// Helper untuk badge status (tanpa loading)
+const getStatusBadge = (item: ChartList) => {
+    const payment = item.Payment?.[0];
+
+    if (payment) {
+        switch (payment.transactionStatus) {
+            case "pending":
+                return (
+                    <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" />
+                        Menunggu Pembayaran
+                    </span>
+                );
+            case "cancel":
+            case "expire":
+                return (
+                    <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium flex items-center gap-1.5">
+                        <AlertCircle className="h-3 w-3" />
+                        Pembayaran Gagal
+                    </span>
+                );
+        }
+    }
+    return (
+        <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+            Belum Checkout
+        </span>
+    );
+};
+
+// Komponen helper untuk item detail di dalam kartu
+function DetailItem({
+    icon: Icon,
+    label,
+    value,
+}: {
+    icon: React.ElementType;
+    label: string;
+    value: React.ReactNode;
+}) {
+    return (
+        <div className="flex items-center gap-2 text-sm">
+            <Icon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">{label}:</span>
+            <span className="font-medium text-gray-900">{value}</span>
+        </div>
+    );
+}
+
+// --- Komponen Skeleton Baru ---
+const CartItemSkeleton = () => (
+    <Card className="overflow-hidden shadow-sm">
+        <div className="flex flex-col sm:flex-row">
+            {/* Bagian Kiri (Konten) */}
+            <div className="p-6 flex-1 space-y-4">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Separator />
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-5 w-28" />
+                    <Skeleton className="h-5 w-24" />
+                </div>
+            </div>
+            {/* Bagian Kanan (Aksi) */}
+            <div className="p-6 sm:w-1/3 flex flex-col justify-between items-start sm:items-end gap-4 bg-gray-50/50 sm:border-l">
+                <Skeleton className="h-7 w-28" />
+                <Skeleton className="h-5 w-36" />
+                <div className="flex flex-col sm:flex-row-reverse gap-2 w-full sm:w-auto">
+                    <Skeleton className="h-10 w-full sm:w-24" />
+                    <Skeleton className="h-10 w-full sm:w-32" />
+                    <Skeleton className="h-10 w-full sm:w-10" />
+                </div>
+            </div>
+        </div>
+    </Card>
+);
+
+// --- Halaman Utama ---
 export default function Page() {
-  const router = useRouter();
-  const [chartList, setCartList] = useState<ChartList[] | null>(null);
+    const router = useRouter();
+    const [chartList, setCartList] = useState<ChartList[] | null>(null);
 
-  useEffect(() => {
-    const getChartList = async () => {
-      try {
-        const data = await getChart();
-        setCartList(data);
-      } catch (err: unknown) {
-        console.error(err);
-        setCartList([]); // fallback to empty array if API fails
-      }
+    useEffect(() => {
+        const getChartList = async () => {
+            try {
+                const data = await getChart(); //
+                setCartList(data);
+            } catch (err: unknown) {
+                console.error(err);
+                if (
+                    err instanceof Error &&
+                    err.message.includes("Invalid Token")
+                ) {
+                    router.push("/login");
+                }
+                setCartList([]); // fallback jika API gagal
+            }
+        };
+        getChartList();
+    }, [router]);
+
+    // Filter dari file asli Anda: hanya tampilkan item yang belum lunas
+    const visibleItems = chartList
+        ? chartList.filter((item) => !item.paymentStatus)
+        : [];
+
+    // Komponen untuk tombol aksi dinamis
+    const GetActionButtons = ({ item }: { item: ChartList }) => {
+        const payment = item.Payment?.[0];
+        const buttonClassName = "w-full sm:w-auto"; // Class untuk konsistensi
+
+        let mainAction: React.ReactNode;
+
+        if (payment?.transactionStatus === "pending") {
+            mainAction = (
+                <Button
+                    className={buttonClassName}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(
+                            `/checkout/payment/${payment.transactionId}/${item.id}`
+                        );
+                    }}
+                >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Bayar
+                </Button>
+            );
+        } else if (
+            payment?.transactionStatus === "cancel" ||
+            payment?.transactionStatus === "expire"
+        ) {
+            mainAction = (
+                <Button
+                    className={buttonClassName}
+                    variant="outline"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/checkout/${item.id}`);
+                    }}
+                >
+                    Bayar Ulang
+                </Button>
+            );
+        } else {
+            // Default: 'waitingCheckout' atau tidak ada data payment
+            mainAction = (
+                <Button
+                    className={buttonClassName}
+                    variant="outline"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/checkout/${item.id}`);
+                    }}
+                >
+                    Checkout
+                </Button>
+            );
+        }
+
+        return (
+            // Mobile: tumpuk vertikal. Desktop: baris horizontal (dibalik)
+            <div className="flex flex-col sm:flex-row-reverse gap-2 w-full sm:w-auto">
+                {/* Tombol Aksi Utama (Paling Kanan) */}
+                {mainAction}
+
+                {/* === TOMBOL DETAIL BARU === */}
+                <Button
+                    variant="outline"
+                    className={buttonClassName}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/status/${item.id}`);
+                    }}
+                >
+                    <Search className="mr-0 sm:mr-2 h-4 w-4" />
+                    <span className="sm:inline hidden">Detail</span>
+                    <span className="sm:hidden inline">Lihat Detail</span>
+                </Button>
+
+                {/* Tombol Hapus (Paling Kiri) */}
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="w-full sm:w-auto text-muted-foreground hover:text-destructive hover:border-destructive"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        alert("Fungsi Hapus belum diimplementasikan");
+                    }}
+                >
+                    <Trash className="h-4 w-4" />
+                    <span className="sm:hidden ml-2">Hapus Item</span>
+                </Button>
+            </div>
+        );
     };
-    getChartList();
-  }, []);
 
-  const visibleItems =
-    chartList?.filter((item) => !item.paymentStatus) ?? [];
+    return (
+        <div className="bg-muted/40 min-h-screen">
+            <Navbar props={"bg-white"} />
 
+            <div className="max-w-7xl mx-auto p-4 md:p-8">
+                <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">
+                    Keranjang Saya
+                </h1>
 
-  return (
-    <div className="space-y-5">
-      <Navbar props={"bg-white"} />
+                {/* --- Kontainer List (Satu Kolom) --- */}
+                <div className="max-w-4xl mx-auto space-y-6">
+                    {/* ========================= */}
+                    {/* 1. Loading State */}
+                    {/* ========================= */}
+                    {!chartList ? (
+                        <>
+                            <CartItemSkeleton />
+                            <CartItemSkeleton />
+                        </>
+                    ) : /* ========================= */
+                    /* 2. Empty State */
+                    /* ========================= */
+                    visibleItems.length === 0 ? (
+                        <Card>
+                            <CardContent className="flex flex-col items-center justify-center py-20">
+                                <ShoppingCart
+                                    size={64}
+                                    className="text-gray-400 mb-4"
+                                />
+                                <h3 className="text-xl font-semibold text-gray-800">
+                                    Keranjang Anda Kosong
+                                </h3>
+                                <p className="text-lg text-gray-500 mt-2">
+                                    Ayo, mulai pesan sesuatu!
+                                </p>
+                                <Button
+                                    className="mt-6"
+                                    onClick={() => router.push("/orderbeta")}
+                                >
+                                    Mulai Belanja
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        /* ========================= */
+                        /* 3. Data State (List) */
+                        /* ========================= */
+                        <>
+                            {visibleItems.map((item) => (
+                                <Card
+                                    key={item.id}
+                                    className="overflow-hidden shadow-sm transition-all hover:shadow-md"
+                                >
+                                    <div className="flex flex-col sm:flex-row">
+                                        {/* Bagian Kiri (Konten) */}
+                                        <div className="p-6 flex-1 space-y-3">
+                                            {/* Link pada nama dokumen */}
+                                            <Link
+                                                href={`/status/${item.id}`}
+                                                className="group"
+                                            >
+                                                <h3 className="text-xl font-semibold text-gray-900 break-all group-hover:text-primary group-hover:underline">
+                                                    {item.documentName}
+                                                </h3>
+                                            </Link>
 
-      {/* ========================= */}
-      {/* 1️⃣ Loading State */}
-      {/* ========================= */}
-      {!chartList ? (
-        <div className="max-w-7xl mx-auto bg-white px-5 lg:px-10 lg:pt-5">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-            Daftar Pesanan
-          </h2>
+                                            <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                                <Calendar className="h-4 w-4" />
+                                                <span>
+                                                    Dibuat{" "}
+                                                    {formatDate(item.orderDate)}
+                                                </span>
+                                            </p>
+                                            <Separator />
+                                            <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-2">
+                                                <DetailItem
+                                                    icon={Layers}
+                                                    label="Kuantitas"
+                                                    value={`${item.quantity} pcs`}
+                                                />
+                                                <DetailItem
+                                                    icon={FileText}
+                                                    label="Kertas"
+                                                    value={item.paperType}
+                                                />
+                                                <DetailItem
+                                                    icon={ClipboardList}
+                                                    label="Finishing"
+                                                    value={item.finishing}
+                                                />
+                                            </div>
+                                        </div>
 
-          {/* Desktop Skeleton */}
-          <div className="hidden sm:table w-full border-collapse">
-            <div className="table-header-group">
-              <div className="table-row">
-                {[
-                  "Tanggal Pemesanan",
-                  "Nama Dokumen",
-                  "Status Pesanan",
-                  "Harga",
-                  "Aksi",
-                ].map((header, index) => (
-                  <div
-                    key={index}
-                    className="table-cell font-semibold py-2 px-4"
-                  >
-                    {header}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="table-row-group">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="table-row">
-                  <div className="table-cell py-4 px-4">
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                  <div className="table-cell py-4 px-4">
-                    <Skeleton className="h-4 w-40" />
-                  </div>
-                  <div className="table-cell py-4 px-4">
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                  <div className="table-cell py-4 px-4 text-right">
-                    <Skeleton className="h-4 w-20 ml-auto" />
-                  </div>
-                  <div className="table-cell py-4 px-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <Skeleton className="h-8 w-8 rounded-md" />
-                      <Skeleton className="h-8 w-20 rounded-md" />
-                    </div>
-                  </div>
+                                        {/* Bagian Kanan (Aksi) */}
+                                        <div className="p-6 sm:w-[280px] flex flex-col justify-between items-start sm:items-end gap-4 bg-gray-50/50 sm:border-l">
+                                            <div className="flex flex-col items-start sm:items-end w-full">
+                                                <span className="text-sm text-muted-foreground">
+                                                    Total Harga
+                                                </span>
+                                                <span className="text-2xl font-bold text-primary">
+                                                    {formatPrice(
+                                                        item.totalPrice
+                                                    )}
+                                                </span>
+                                            </div>
+                                            {getStatusBadge(item)}
+
+                                            {/* Komponen Tombol Aksi */}
+                                            <GetActionButtons item={item} />
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </>
+                    )}
                 </div>
-              ))}
             </div>
-          </div>
-
-          {/* Mobile Skeleton */}
-          <div className="sm:hidden space-y-4">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={index}
-                className="border rounded-lg shadow-md p-4 space-y-3"
-              >
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-6 w-20 ml-auto" />
-                <div className="flex justify-end gap-2 mt-3">
-                  <Skeleton className="h-8 w-8 rounded-md" />
-                  <Skeleton className="h-8 w-20 rounded-md" />
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
-      ) : visibleItems.length === 0 ? (
-        /* ========================= */
-        /* 2️⃣ Empty Cart State */
-        /* ========================= */
-        <div className="flex flex-col items-center justify-center py-20">
-          <ShoppingCart size={64} className="text-gray-400 mb-4" />
-          <p className="text-lg text-gray-500">
-            Tidak ada pesanan di keranjang kamu.
-          </p>
-          <Button className="mt-4" onClick={() => router.push("/")}>
-            Mulai Belanja
-          </Button>
-        </div>
-      ) : (
-        /* ========================= */
-        /* 3️⃣ Cart Table with Data */
-        /* ========================= */
-        <div className="max-w-7xl mx-auto bg-white px-5 lg:px-10 lg:pt-5">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-            Keranjang Pesanan
-          </h2>
-
-          <Table className="hidden sm:table">
-            <TableCaption>Keranjang pesanan</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[150px]">Tanggal Pemesanan</TableHead>
-                <TableHead>Detail</TableHead>
-                <TableHead>Nama Dokumen</TableHead>
-                <TableHead>Status Pesanan</TableHead>
-                <TableHead className="text-right">Harga</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {chartList
-                .filter((item) => !item.paymentStatus)
-                .map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">
-                      {item.orderDate.replace(
-                        /^(\d{4})-(\d{2})-(\d{2}).*$/,
-                        "$3-$2-$1"
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <Button onClick={() => router.push(`/status/${item.id}`)}>
-                        <ListCollapse />
-                      </Button>
-                    </TableCell>
-                    <TableCell>{item.documentName}</TableCell>
-                    <TableCell>
-                      {item.Payment && item.Payment.length > 0 ? (
-                        item.Payment[0].transactionStatus === "pending" ? (
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-                            Menunggu Pembayaran
-                          </span>
-                        ) : item.Payment[0].transactionStatus ===
-                          "settlement" ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                            Pembayaran Berhasil
-                          </span>
-                        ) : item.Payment[0].transactionStatus === "cancel" ||
-                          item.Payment[0].transactionStatus === "expire" ? (
-                          <span className="px-2 py-1 bg-red-100 text-red-900 rounded-full text-xs">
-                            {item.Payment[0].transactionStatus}
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                            Pembayaran Berhasil
-                          </span>
-                        )
-                      ) : (
-                        <span className="px-2 py-1 bg-yellow-100 text-red-800 rounded-full text-xs">
-                          Belum Checkout
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      Rp.{item.totalPrice}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-row justify-end gap-2">
-                        <Button variant="destructive">
-                          <Trash size={16} className="mr-1" />
-                        </Button>
-                        {item.Payment?.[0]?.transactionStatus === "pending" ? (
-                          <Button
-                            variant="outline"
-                            className="w-[125px] justify-between border-green-500"
-                            onClick={() =>
-                              router.push(
-                                `/checkout/payment/${item.Payment[0].transactionId}/${item.id}`
-                              )
-                            }
-                          >
-                            <ShoppingCart />
-                            Bayar
-                          </Button>
-                        ) : item.Payment?.[0]?.transactionStatus === "cancel" ||
-                          item.Payment?.[0]?.transactionStatus === "expire" ? (
-                          <Button
-                            variant="outline"
-                            className="w-[125px] justify-between border-red-200"
-                            onClick={() => router.push(`/checkout/${item.id}`)}
-                          >
-                            <ShoppingCart />
-                            Bayar Ulang
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            className="w-[125px] justify-between border-yellow-400"
-                            onClick={() => router.push(`/checkout/${item.id}`)}
-                          >
-                            <ShoppingCart />
-                            Checkout
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </div>
-  );
+    );
 }

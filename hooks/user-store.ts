@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { jwtDecode } from "jwt-decode";
 
-interface Login {
+export interface Login {
     token: string | undefined;
     loginStatus: boolean;
     userId: string | undefined;

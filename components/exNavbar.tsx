@@ -2,10 +2,23 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useLogin } from "@/hooks/user-store";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+    Avatar,
+    AvatarFallback,
+} from "@/components/ui/avatar";
+import {
+    LogoutButtonMobile,
+    LogoutButtonDekstop,
+} from "@/components/logoutButton";
+import { Skeleton } from "@/components/ui/skeleton"; 
+import { cn } from "@/lib/utils";
+
+// Hook baru kita
+import { useSafeLogin } from "@/hooks/use-safe-login"; 
 
 import {
     Menu,
@@ -15,283 +28,314 @@ import {
     Settings,
     Loader2,
     LogIn,
-    LogOut,
     ShoppingCart,
-    UserRound,
     Package,
-    Truck,
-    CheckCircle,
-    Clock,
+    FileText,
 } from "lucide-react";
 
 import {
     Sheet,
     SheetContent,
+    SheetDescription,
+    SheetHeader,
     SheetTitle,
     SheetTrigger,
+    SheetFooter,
 } from "@/components/ui/sheet";
 
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+const desktopMenuItems = [
+    { label: "Home", href: "/home" },
+    { label: "Pesan Sekarang", href: "/orderbeta" },
+    { label: "Lacak Pesanan", href: "/transaction" },
+];
+
+const mobileMenuItems = [
+    { label: "Home", icon: Home, href: "/home" },
+    { label: "Pesan Sekarang", icon: Package, href: "/orderbeta" },
+    { label: "Lacak Pesanan", icon: FileText, href: "/transaction" },
+    { label: "Keranjang", icon: ShoppingCart, href: "/chart" },
+];
+
+const userMenuItems = [
+    { label: "Profil Saya", href: "/profile" },
+    { label: "Pengaturan Akun", href: "/account" },
+];
+
+const NavActionsSkeleton = () => (
+    <div className="flex items-center gap-4">
+        <Skeleton className="h-8 w-8 rounded-full" />
+        <Skeleton className="h-8 w-8 rounded-full" />
+        <Skeleton className="h-10 w-10 rounded-full" />
+    </div>
+);
+
+const MobileNavActionsSkeleton = () => (
+    <Skeleton className="h-10 w-full" />
+);
+
 
 export default function Navbar({ props }: { props?: string }) {
-    const menuItems = [
-        { label: "Home", icon: Home, path: "/home" },
-        { label: "My Profile", icon: User, path: "/profile" },
-        { label: "Notification", icon: Bell, path: "/notification" },
-        { label: "Setting", icon: Settings, path: "/setting" },
-    ];
-
-    const lgMenuItems = [
-        { label: "Home", icon: Home, path: "/home" },
-        { label: "Product", icon: User, path: "/product" },
-        { label: "Contact", icon: Bell, path: "/contact" },
-        { label: "FAQ", icon: Settings, path: "/faq" },
-    ];
-
-    const [loading, setLoading] = useState(false);
-    const isLogin = useLogin((state) => state.loginStatus);
+    const [loading, setLoading] = useState(false); // Untuk tombol login
     const pathname = usePathname();
     const router = useRouter();
-    const getToken = useLogin((state) => state.setToken);
-    const userName = useLogin((state) => state.name)
-    const userEmail = useLogin((state) => state.email)
 
-    useEffect(() => {
-        getToken();
-    }, []);
+    const { isLogin, userName, userEmail, isLoading } = useSafeLogin();
 
     return (
-        <div className={props}>
-            {/* MOBILE NAV */}
-            <div>
-                <div className="lg:hidden flex py-6 items-center justify-between">
-                    <div className="flex items-center ps-3">
-                        <Sheet>
-                            <SheetTrigger className="p-2">
-                                <Menu size={30} />
-                            </SheetTrigger>
-
-                            <SheetContent
-                                side="left"
-                                className="bg-zinc-700 text-white w-2/3 p-6"
-                            >
-                                <SheetTitle className="hidden">Menu</SheetTitle>
-                                <div className="flex flex-col items-center text-center">
-                                    <h2 className="text-xl font-semibold mt-2">
-                                        {userName}
-                                    </h2>
-                                    <p className="text-sm text-gray-300">
-                                        {userEmail}
-                                    </p>
-                                </div>
-                                <nav className="mt-6 space-y-4">
-                                    {menuItems.map((item) => (
-                                        <button
-                                            key={item.label}
-                                            onClick={() =>
-                                                router.push(item.path)
-                                            }
-                                            className={`flex items-center space-x-4 p-2 w-full rounded-lg transition-all 
-                        ${pathname === item.path ? "border text-white" : ""}`}
-                                        >
-                                            <item.icon size={20} />
-                                            <span className="text-lg">
-                                                {item.label}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </nav>
-                                <div className="absolute bottom-6 left-6 w-[calc(100%-3rem)]">
-                                    {isLogin ? (
-                                        <Button
-                                            variant={"outline"}
-                                            onClick={() => {
-                                                router.push("logout");
-                                            }}
-                                            className="bg-transparent text-white w-full"
-                                        >
-                                            <LogOut size={20} />
-                                            <span className="text-lg">
-                                                Log Out
-                                            </span>
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            variant={"outline"}
-                                            onClick={() => {
-                                                setLoading(true);
-                                                router.push("/login");
-                                            }}
-                                            className="bg-transparent text-white w-full"
-                                        >
-                                            {loading ? (
-                                                <Loader2 className="animate-spin" />
-                                            ) : (
-                                                <LogIn size={20} />
-                                            )}
-                                            <span className="text-lg">
-                                                Log In
-                                            </span>
-                                        </Button>
-                                    )}
-                                </div>
-                            </SheetContent>
-                        </Sheet>
-                    </div>
-
-                    <div className="absolute left-1/2 transform -translate-x-1/2">
+        <header
+            className={cn(
+                "sticky top-0 z-50 w-full border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60",
+                props
+            )}
+        >
+            {/* === DESKTOP NAV === */}
+            <div className="container-fluid max-w-7xl mx-auto hidden h-20 items-center justify-between px-4 md:px-6 lg:flex">
+                {/* Bagian Kiri: Logo & Navigasi */}
+                <div className="flex items-center gap-6">
+                    <Link
+                        href="/home"
+                        className="flex items-center gap-2 font-bold"
+                    >
                         <Image
                             src={"/logo.png"}
-                            alt="logo"
-                            width={50}
-                            height={50}
+                            alt="EzPrint Logo"
+                            width={40}
+                            height={40}
                         />
-                    </div>
-                </div>
-            </div>
-
-            {/* DESKTOP NAV */}
-            <header className="hidden lg:flex justify-around p-5 text-black text-lg h-32 items-center">
-                <div>
-                    <Image
-                        src={"/logo.png"}
-                        alt="logo"
-                        width={65}
-                        height={65}
-                    />
-                </div>
-
-                <div className="flex gap-10">
-                    {lgMenuItems.map((item) => (
-                        <Link key={item.label} href={item.path}>
-                            {item.label}
-                        </Link>
-                    ))}
+                        <span className="text-xl">EzPrint</span>
+                    </Link>
+                    <Separator orientation="vertical" className="h-6" />
+                    <nav className="flex items-center gap-4">
+                        {desktopMenuItems.map((item) => (
+                            <Link
+                                key={item.label}
+                                href={item.href}
+                                className={cn(
+                                    "text-md font-medium text-muted-foreground transition-colors hover:text-primary",
+                                    pathname === item.href && "text-primary"
+                                )}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                    </nav>
                 </div>
 
-                <div>
-                    {isLogin ? (
-                        <div className="pe-5 flex gap-5 items-center">
-                            {/* Notification Dropdown */}
+                {/* Bagian Kanan: Aksi & Profil */}
+                <div className="flex items-center gap-4">
+                    {isLoading ? (
+                        <NavActionsSkeleton />
+                    ) : isLogin ? (
+                        <>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => router.push("/chart")}
+                                aria-label="Keranjang"
+                            >
+                                <ShoppingCart/>
+                            </Button>
+                            
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <button className="relative p-2 hover:bg-gray-100 rounded-full transition">
-                                        <Bell size={22} />
-                                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5">
-                                            3
-                                        </span>
-                                    </button>
+                                    <Button variant="ghost" size="icon" aria-label="Notifikasi">
+                                        <Bell/>
+                                    </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
                                     align="end"
-                                    className="w-[350px] rounded-xl shadow-lg p-0 overflow-hidden"
+                                    className="w-80"
                                 >
-                                    <div className="flex items-center justify-between px-4 py-3 border-b">
-                                        <h3 className="text-base font-semibold">
-                                            Notifikasi
-                                        </h3>
-                                        <Settings
-                                            size={18}
-                                            className="text-gray-500 cursor-pointer"
-                                        />
+                                    <DropdownMenuLabel>
+                                        Notifikasi
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <div className="p-4 text-center text-sm text-muted-foreground">
+                                        Belum ada notifikasi baru.
                                     </div>
-
-                                    <Tabs
-                                        defaultValue="transaksi"
-                                        className="w-full"
-                                    >
-                                        <TabsList className="grid grid-cols-2 bg-transparent border-b">
-                                            <TabsTrigger
-                                                value="transaksi"
-                                                className="data-[state=active]:border-b-2 data-[state=active]:border-green-500 data-[state=active]:text-green-600 rounded-none"
-                                            >
-                                                Transaksi
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="update"
-                                                className="data-[state=active]:border-b-2 data-[state=active]:border-green-500 data-[state=active]:text-green-600 rounded-none"
-                                            >
-                                                Update
-                                            </TabsTrigger>
-                                        </TabsList>
-
-                                        <TabsContent value="transaksi">
-                                            <ScrollArea>
-                                                <div className="p-4 space-y-4">
-                                                    <section>
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <h4 className="font-semibold">
-                                                                Transaksi
-                                                            </h4>
-                                                            <Button variant={"outline"} className="b">
-                                                                <Link
-                                                                    className="text-sm text-green-600"
-                                                                    href={
-                                                                        "/transaction"
-                                                                    }
-                                                                >
-                                                                    Lihat Semua
-                                                                </Link>
-                                                            </Button>
-                                                        </div>
-                                                    </section>
-                                                    <section className="pt-3 border-t">
-                                                        <h4 className="font-semibold mb-2">
-                                                            Penjualan
-                                                        </h4>
-                                                        <p className="text-sm text-gray-600 mb-3">
-                                                            Cek pesanan yang
-                                                            masuk dan
-                                                            perkembangan tokomu
-                                                            secara rutin di satu
-                                                            tempat
-                                                        </p>
-                                                        <button className="w-full border border-green-600 text-green-600 rounded-lg py-1.5 text-sm hover:bg-green-50 transition">
-                                                            Masuk ke Seller
-                                                            Center
-                                                        </button>
-                                                    </section>
-                                                </div>
-                                            </ScrollArea>
-                                        </TabsContent>
-
-                                        <TabsContent value="update">
-                                            <div className="p-4 text-center text-gray-500 text-sm">
-                                                Belum ada notifikasi baru.
-                                            </div>
-                                        </TabsContent>
-                                    </Tabs>
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
-                            {/* Other icons */}
-                            <Link href={"/chart"}>
-                                <ShoppingCart />
-                            </Link>
-                            <Link href={"/profile"}>
-                                <UserRound />
-                            </Link>
-                        </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        className="relative h-10 w-10 rounded-full"
+                                    >
+                                        <Avatar className="h-9 w-9">
+                                            <AvatarFallback>
+                                                {userName
+                                                    ? userName
+                                                          .charAt(0)
+                                                          .toUpperCase()
+                                                    : "U"}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    className="w-56"
+                                    align="end"
+                                    forceMount
+                                >
+                                    <DropdownMenuLabel className="font-normal">
+                                        <div className="flex flex-col space-y-1">
+                                            <p className="text-sm font-medium leading-none">
+                                                {userName}
+                                            </p>
+                                            <p className="text-xs leading-none text-muted-foreground">
+                                                {userEmail}
+                                            </p>
+                                        </div>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {userMenuItems.map((item) => (
+                                        <DropdownMenuItem
+                                            key={item.label}
+                                            onClick={() =>
+                                                router.push(item.href)
+                                            }
+                                        >
+                                            {item.label}
+                                        </DropdownMenuItem>
+                                    ))}
+                                    <DropdownMenuSeparator />
+                                    <LogoutButtonDekstop props="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-destructive outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full" />
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </>
                     ) : (
-                        <div className="pe-5">
-                            <Link
-                                href={"/login"}
-                                className="flex gap-2 items-center"
-                            >
-                                <p>Login</p>
-                                <LogIn />
-                            </Link>
-                        </div>
+                        // Tombol Login jika belum login
+                        <Button onClick={() => router.push("/login")}>
+                            <LogIn className="mr-2 h-4 w-4" />
+                            Login
+                        </Button>
                     )}
                 </div>
-            </header>
-        </div>
+            </div>
+
+            {/* === MOBILE NAV (Sheet) === */}
+            <div className="flex h-16 items-center justify-between px-4 md:px-6 lg:hidden">
+                <Link
+                    href="/home"
+                    className="flex items-center gap-2 font-bold"
+                >
+                    <Image
+                        src={"/logo.png"}
+                        alt="EzPrint Logo"
+                        width={32}
+                        height={32}
+                    />
+                    <span className="text-lg">EzPrint</span>
+                </Link>
+
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button variant="outline" size="icon">
+                            <Menu className="h-6 w-6" />
+                            <span className="sr-only">Buka menu</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="flex flex-col p-0">
+                        <SheetHeader className="p-4 border-b">
+                            <SheetTitle>
+                                <Link
+                                    href="/home"
+                                    className="flex items-center gap-2 font-bold"
+                                >
+                                    <Image
+                                        src={"/logo.png"}
+                                        alt="EzPrint Logo"
+                                        width={32}
+                                        height={32}
+                                    />
+                                    <span className="text-lg">EzPrint</span>
+                                </Link>
+                            </SheetTitle>
+                            {!isLoading && isLogin && (
+                                <SheetDescription className="text-left pt-2">
+                                    Selamat datang,{" "}
+                                    <span className="font-semibold">
+                                        {userName}
+                                    </span>
+                                </SheetDescription>
+                            )}
+                        </SheetHeader>
+
+                        <nav className="flex-1 space-y-2 p-4">
+                            {mobileMenuItems.map((item) => (
+                                <Button
+                                    key={item.label}
+                                    variant={
+                                        pathname === item.href
+                                            ? "secondary"
+                                            : "ghost"
+                                    }
+                                    className="w-full justify-start gap-3"
+                                    onClick={() => router.push(item.href)}
+                                >
+                                    <item.icon className="h-5 w-5" />
+                                    <span>{item.label}</span>
+                                </Button>
+                            ))}
+                        </nav>
+                        
+                        {!isLoading && isLogin && (
+                            <div className="p-4 border-t">
+                                <Button
+                                    variant="ghost"
+                                    className="w-full justify-start gap-3"
+                                    onClick={() => router.push("/profile")}
+                                >
+                                    <User className="h-5 w-5" />
+                                    <span>Profil Saya</span>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    className="w-full justify-start gap-3"
+                                    onClick={() => router.push("/account")}
+                                >
+                                    <Settings className="h-5 w-5" />
+                                    <span>Pengaturan Akun</span>
+                                </Button>
+                            </div>
+                        )}
+
+                        <SheetFooter className="p-4 border-t">
+                            {isLoading ? (
+                                <MobileNavActionsSkeleton />
+                            ) : isLogin ? (
+                                <LogoutButtonMobile props="w-full justify-center gap-3" />
+                            ) : (
+                                <Button
+                                    className="w-full"
+                                    onClick={() => {
+                                        setLoading(true);
+                                        router.push("/login");
+                                    }}
+                                    disabled={loading}
+                                >
+                                    {loading ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <LogIn className="mr-2 h-4 w-4" />
+                                    )}
+                                    Login
+                                </Button>
+                            )}
+                        </SheetFooter>
+                    </SheetContent>
+                </Sheet>
+            </div>
+        </header>
     );
 }
