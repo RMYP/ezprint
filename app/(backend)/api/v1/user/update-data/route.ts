@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { SignJWT } from "jose";
 import { JWT_SECRET } from "@/lib/envConfig";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export async function PATCH(request: Request) {
     try {
@@ -13,7 +14,9 @@ export async function PATCH(request: Request) {
             return httpResponse(422, false, "Invalid input", null);
         }
 
-        const token = request.headers.get("cookie")?.split("_token=")[1];
+        const cookieStore = cookies();
+        const tokenCookie = (await cookieStore).get("_token");
+        const token = tokenCookie?.value;
 
         if (!token) {
             return Response.json(

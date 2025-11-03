@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
         const secretKey = new TextEncoder().encode(JWT_SECRET);
         const token = await new SignJWT(payload)
-            .setProtectedHeader({ alg: "HS256" }) // Pastikan 'alg' sama
+            .setProtectedHeader({ alg: "HS256" })
             .setIssuedAt()
             .setExpirationTime("1d")
             .sign(secretKey);

@@ -1,10 +1,13 @@
 import { checkJwt } from "@/lib/jwtDecode";
 import prisma from "@/lib/prisma";
 import httpResponse from "@/lib/httpError";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
     try {
-        const token = request.headers.get("cookie")?.split("_token=")[1];
+        const cookieStore = cookies();
+        const tokenCookie = (await cookieStore).get("_token");
+        const token = tokenCookie?.value;
         if (!token) {
             return httpResponse(401, false, "Unauthorized access!", null);
         }

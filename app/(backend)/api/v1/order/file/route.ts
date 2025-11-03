@@ -19,8 +19,9 @@ export async function POST(request: Request) {
         }
 
         const cookieStore = cookies();
-        const tokenCookie = cookieStore.get("_token");
-        const token = tokenCookie?.value; //
+        const tokenCookie = (await cookieStore).get("_token");
+        const token = tokenCookie?.value;
+
         if (!token) {
             return Response.json(
                 {
@@ -33,7 +34,6 @@ export async function POST(request: Request) {
         }
 
         const decodeJwt = await checkJwt(token);
-        console.log("asasd");
         if (!decodeJwt?.id) {
             return Response.json(
                 { status: 403, success: false, message: "Invalid Token" },

@@ -9,6 +9,7 @@ import {
 } from "@/lib/envConfig";
 import { NextRequest, NextResponse } from "next/server";
 import { checkJwt } from "@/lib/jwtDecode";
+import { cookies } from "next/headers";
 
 export async function GET(
     request: NextRequest,
@@ -21,7 +22,10 @@ export async function GET(
             return httpResponse(422, false, "Invalid status", null);
         }
 
-        const token = request.headers.get("cookie")?.split("_token=")[1];
+        const cookieStore = cookies();
+        const tokenCookie = (await cookieStore).get("_token");
+        const token = tokenCookie?.value;
+
         if (!token) {
             return httpResponse(401, false, "Unauthorized access!", null);
         }
