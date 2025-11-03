@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
 
-    const tokenValue = token.startsWith("Bearer")
+    const tokenValue = token.startsWith("Bearer ")
         ? token.split("Bearer ")[1]
         : token;
 

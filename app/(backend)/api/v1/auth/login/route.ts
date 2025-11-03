@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import * as jwt from "jsonwebtoken";
+import { SignJWT } from "jose";
 import bcrypt from "bcrypt";
 import { JWT_SECRET } from "@/lib/envConfig";
 import { NextResponse } from "next/server";
@@ -34,7 +34,18 @@ export async function POST(request: Request) {
             phone: checkAccount.user.phoneNum,
         };
 
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
+        // const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
+
+        // Jose
+
+        const secretKey = new TextEncoder().encode(JWT_SECRET);
+        const token = await new SignJWT(payload)
+            .setProtectedHeader({ alg: "HS256" }) // Pastikan 'alg' sama
+            .setIssuedAt()
+            .setExpirationTime("1d")
+            .sign(secretKey);
+
+        // end Jose
 
         const response = NextResponse.json({
             status: 201,
