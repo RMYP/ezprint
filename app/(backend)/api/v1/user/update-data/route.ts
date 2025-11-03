@@ -64,7 +64,7 @@ export async function PATCH(request: Request) {
       message: "Login successful",
     });
 
-    response.cookies.set("_token", `Bearer${newToken}`, {
+    response.cookies.set("_token", `Bearer ${newToken}`, {
       httpOnly: true,
       path: "/",
       maxAge: 60 * 60 * 24,

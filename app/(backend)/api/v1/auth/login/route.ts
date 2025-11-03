@@ -42,7 +42,7 @@ export async function POST(request: Request) {
             message: "Login successful",
         });
 
-        response.cookies.set("_token", `Bearer${token}`, {
+        response.cookies.set("_token", `Bearer ${token}`, {
             httpOnly: true,
             path: "/",
             maxAge: 60 * 60 * 24,

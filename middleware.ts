@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
     }
 
     const tokenValue = token.startsWith("Bearer")
-        ? token.split("Bearer")[1]
+        ? token.split("Bearer ")[1]
         : token;
 
     if (!JWT_SECRET) {
@@ -54,6 +54,7 @@ export const config = {
     matcher: [
         "/dashboard/:path*",
         "/order",
+        "/orderbeta",
         "/checkout/:id*",
         "/chart",
         "/checkout/payment",

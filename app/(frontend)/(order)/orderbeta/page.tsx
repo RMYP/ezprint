@@ -109,6 +109,7 @@ export default function OrderPageRedesign() {
     const [selectedAddress, setSelectedAddress] = useState<MockAddress>(
         mockUserAddresses[0]
     );
+    const [isCalculatedPrice, setIsCalculatedPrice] = useState(false);
 
     // --- State dari Zustand Store ---
     const token = useLogin((state) => state.token) || "mock_token"; // Fallback ke mock token
@@ -171,8 +172,10 @@ export default function OrderPageRedesign() {
                 selectedFinishing.price,
                 quantity
             );
+            setIsCalculatedPrice(true);
             toast.success("Harga berhasil dikalkulasi!");
         } else {
+            setIsCalculatedPrice(false);
             toast.error(
                 "Gagal menghitung harga. Pastikan semua pilihan valid."
             );
@@ -252,7 +255,7 @@ export default function OrderPageRedesign() {
                                         type="file"
                                         ref={fileInputRef}
                                         onChange={handleFileChange}
-                                        className="hidden" 
+                                        className="hidden"
                                         accept=".pdf,.doc,.docx"
                                     />
                                     {!selectedFile ? (
@@ -283,7 +286,7 @@ export default function OrderPageRedesign() {
                                                     setSelectedFile(null);
                                                     if (fileInputRef.current) {
                                                         fileInputRef.current.value =
-                                                            ""; 
+                                                            "";
                                                     }
                                                 }}
                                             >
@@ -570,15 +573,26 @@ export default function OrderPageRedesign() {
                                         </span>
                                     </div>
                                 </div>
-
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={handleCalculatePrice}
-                                >
-                                    Kalkulasi Harga
-                                </Button>
+                                {isCalculatedPrice ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={handleCalculatePrice}
+                                        disabled
+                                    >
+                                        Kalkulasi Harga
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={handleCalculatePrice}
+                                    >
+                                        Kalkulasi Harga
+                                    </Button>
+                                )}
 
                                 <Separator />
                                 <div className="flex justify-between items-center">
@@ -591,18 +605,29 @@ export default function OrderPageRedesign() {
                                 </div>
                             </CardContent>
                             <CardFooter>
-                                <Button
-                                    type="submit"
-                                    form="order-form" 
-                                    className="w-full text-lg py-6"
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? (
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    ) : (
-                                        "Lanjutkan ke Pembayaran"
-                                    )}
-                                </Button>
+                                {isCalculatedPrice ? (
+                                    <Button
+                                        type="submit"
+                                        form="order-form"
+                                        className="w-full text-lg py-6"
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? (
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                        ) : (
+                                            "Lanjutkan ke Pembayaran"
+                                        )}
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        type="submit"
+                                        form="order-form"
+                                        className="w-full text-lg py-6"
+                                        disabled
+                                    >
+                                        Lanjutkan ke Pembayaran
+                                    </Button>
+                                )}
                             </CardFooter>
                         </Card>
                     </div>

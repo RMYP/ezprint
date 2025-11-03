@@ -14,7 +14,7 @@ export async function checkJwt(token: string) {
   try {
     if (!token) return null;
     if (!token.startsWith("Bearer")) return null;
-    const bearerToken = token.split("Bearer")[1];
+    const bearerToken = token.split("Bearer ")[1];
     console.log("checkjwt", bearerToken)
     const decoded = jwt.verify(bearerToken, JWT_SECRET) as JwtPayloadWithId;
     decoded.token = token;
@@ -31,7 +31,7 @@ export async function checkJwt(token: string) {
 export async function checkAuthorizationJwt(token: string, id: string) {
   try {
     console.log(token);
-    if (!token.startsWith("Bearer ")) {
+    if (!token.startsWith("Bearer")) {
       throw {
         status: 422,
         success: false,

@@ -18,6 +18,7 @@ export async function POST(request: Request) {
     }
     
     const token = request.headers.get("cookie")?.split("_token=")[1];
+    console.log("as")
     
     if (!token) {
       return Response.json(
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     }
     
     const decodeJwt = await checkJwt(token);
-    console.log("as")
+    console.log("asasd")
     if (!decodeJwt?.id) {
       return Response.json(
         { status: 403, success: false, message: "Invalid Token" },
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
       );
     }
     
-    console.log(file, "As")
+    console.log(decodeJwt, "jokowi")
     const uploadDir = DocPath;
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });

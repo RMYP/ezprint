@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       const response = NextResponse.redirect(
         new URL("/home", request.nextUrl.origin)
       );
-      response.cookies.set("_token", `Bearer${token}`, {
+      response.cookies.set("_token", `Bearer ${token}`, {
         httpOnly: true,
         path: "/",
         maxAge: 60 * 60 * 24, // 1 day
