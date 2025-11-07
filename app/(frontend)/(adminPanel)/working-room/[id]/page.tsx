@@ -195,7 +195,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         }
         setIsLoading(true);
         const updateStatus = await updateOrderStatus(
-            `${orderId}%${selectedStatus}`
+            `${orderId}%25${selectedStatus}`
         );
         setCurrentStatus(selectedStatus);
         setIsLoading(false);

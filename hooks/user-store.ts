@@ -69,7 +69,9 @@ export const useLogin = create<Login>()(
                 }
 
                 try {
-                    const response = await fetch("/api/v1/auth/status");
+                    const response = await fetch("/api/v1/auth/status", {
+                        credentials: "include",
+                    });
                     const data = await response.json();
                     if (data.loggedIn) {
                         const decodedToken = jwtDecode(
@@ -96,7 +98,9 @@ export const useLogin = create<Login>()(
 
             refreshToken: async () => {
                 try {
-                    const response = await fetch("/api/v1/auth/status");
+                    const response = await fetch("/api/v1/auth/status", {
+                        credentials: "include",
+                    });
                     const data = await response.json();
 
                     if (data.loggedIn) {
@@ -123,7 +127,7 @@ export const useLogin = create<Login>()(
             },
         }),
         {
-            name: "login-storage", // nama key di local/session storage
+            name: "login-storage",
         }
     )
 );
