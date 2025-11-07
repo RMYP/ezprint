@@ -52,7 +52,6 @@ export async function POST(request: Request) {
                 email: decodeJwt.email,
                 phone: getOrder.user.phoneNum || "",
             },
-
             callbacks: { finish: `${BaseUrl}/` },
         };
 

@@ -15,6 +15,7 @@ function generateSignature(
 
 export async function POST(request: Request) {
   try {
+    console.log("get notification")
     const payload = await request.json();
     const {
       order_id,
@@ -49,14 +50,14 @@ export async function POST(request: Request) {
 
     const getId = await prisma.payment.findFirst({
       where: {
-        transactionId: transaction_id,
+        transactionId: order_id,
       },
     });
 
     if (transaction_status === "settlement") {
       await prisma.$transaction([
         prisma.payment.updateMany({
-          where: { transactionId: transaction_id },
+          where: { transactionId: order_id },
           data: { transactionStatus: transaction_status },
         }),
         prisma.order.update({

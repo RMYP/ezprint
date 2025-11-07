@@ -95,7 +95,7 @@ export const uploadFileCheckout = async (data: File, token: string) => {
         });
 
         if (response.status !== 201) {
-            console.log(response);
+            console.log(response)
             throw new Error(response.data.message || "Upload failed");
         }
 
@@ -336,6 +336,7 @@ export const getDashboardData = async () => {
 
 export const getOrderWorkingRoom = async (id: string) => {
     try {
+        console.log("id", id)
         const response = await axios.get(
             `/api/v1/dashboard/section-working-room/${id}`,
             {
@@ -343,30 +344,10 @@ export const getOrderWorkingRoom = async (id: string) => {
             }
         );
 
+        console.log("resp", response)
+
         if (response.data.status !== 200) {
             console.log(response.data);
-            throw new Error(response.data.message);
-        }
-
-        return response.data.data;
-    } catch (err: unknown) {
-        const error = axiosErrorHandler(err);
-        throw new Error(error);
-    }
-};
-
-export const updateOrderStatus = async (id: string) => {
-    console.log(id);
-    try {
-        const response = await axios.patch(
-            `/api/v1/dashboard/update-status/${id}`,
-            null,
-            {
-                withCredentials: true,
-            }
-        );
-
-        if (response.data.status !== 200) {
             throw new Error(response.data.message);
         }
 

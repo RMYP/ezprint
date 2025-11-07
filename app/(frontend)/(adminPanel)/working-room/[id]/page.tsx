@@ -21,11 +21,11 @@ import {
     Loader2,
 } from "lucide-react";
 
-import {
-    getOrderWorkingRoom,
-    updateOrderStatus,
-} from "@/app/(frontend)/action/action";
+// Ganti import ini dengan path yang benar ke action Anda
+import { getOrderWorkingRoom } from "@/app/(frontend)/action/action";
 
+// (Salin semua Enum dan Interface Anda dari file asli ke sini)
+// --- Enum dan Interface ---
 enum OrderProgress {
     waitingCheckout = "waitingCheckout",
     waitingPayment = "waitingPayment",
@@ -98,6 +98,44 @@ const statusOptions = [
     { value: OrderProgress.deny, label: "Ditolak" },
 ];
 
+// const mockOrder: OrderDetails = {
+//     id: "ord_12345ABC",
+//     sheetCount: 150,
+//     paperType: "80gsm",
+//     finishing: "Jilid Soft Cover",
+//     quantity: 2,
+//     printType: "Cetak Dua Sisi (duplex)",
+//     totalPrice: 86000,
+//     status: OrderProgress.onProgress,
+//     paymentStatus: true,
+//     documentPath: "/files/skripsi-bab-1-revisi.pdf",
+//     documentName: "skripsi-bab-1-revisi.pdf",
+//     userId: "user_67890",
+//     orderDate: new Date("2025-10-30T10:30:00Z"),
+//     user: {
+//         id: "user_67890",
+//         username: "Budi Gunawan",
+//         phoneNum: "081234567890",
+//         Auth: {
+//             email: "budi.gunawan@email.com",
+//         },
+//     },
+//     Payment: [
+//         {
+//             id: "pay_XYZ",
+//             transactionId: "mid_ABC123",
+//             orderId: "ord_12345ABC",
+//             grossAmount: "Rp 86.000",
+//             paymentType: "bank_transfer",
+//             transactionTime: new Date("2025-10-30T10:32:00Z"),
+//             expiryTime: new Date("2025-10-31T10:32:00Z"),
+//             vaNumber: "8800123456789",
+//             bank: "bca",
+//             transactionStatus: TransactionStatus.settlement,
+//         },
+//     ],
+// };
+
 const getStatusLabel = (status: OrderProgress): string => {
     return (
         statusOptions.find((opt) => opt.value === status)?.label ??
@@ -149,7 +187,6 @@ function DetailItem({
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
     const [order, setOrder] = useState<OrderDetails | null>(null);
-    const [orderId, setOrderId] = useState("");
 
     const [currentStatus, setCurrentStatus] = useState<OrderProgress | null>(
         null
@@ -162,11 +199,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
     useEffect(() => {
         const fetchOrder = async () => {
-            setIsPageLoading(true);
+            setIsPageLoading(true); // Mulai loading di sini
             try {
                 const { id } = await params;
 
-                setOrderId(id);
                 if (id) {
                     const data = await getOrderWorkingRoom(id);
                     setOrder(data);
@@ -188,28 +224,29 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     }, [params]);
 
     // mockup updateStatus
-    const handleUpdateStatus = async () => {
+    const handleUpdateStatus = () => {
         if (!selectedStatus) {
             alert("Status yang dipilih tidak valid.");
             return;
         }
+
         setIsLoading(true);
-        const updateStatus = await updateOrderStatus(
-            `${orderId}%${selectedStatus}`
-        );
-        setCurrentStatus(selectedStatus);
-        setIsLoading(false);
-        alert(
-            `Status pesanan berhasil diubah menjadi: ${getStatusLabel(
-                selectedStatus
-            )}`
-        );
         console.log(
             "Mengupdate status dari",
             currentStatus,
             "menjadi",
             selectedStatus
         );
+
+        setTimeout(() => {
+            setCurrentStatus(selectedStatus);
+            setIsLoading(false);
+            alert(
+                `Status pesanan berhasil diubah menjadi: ${getStatusLabel(
+                    selectedStatus
+                )}`
+            );
+        }, 1000);
     };
 
     // Mockup simulasi download file
@@ -328,6 +365,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                                     Status Pesanan Saat Ini
                                 </label>
                                 <p className="text-lg font-semibold">
+                                    {/* Aman untuk diakses karena 'currentStatus' pasti sudah terisi */}
                                     {currentStatus
                                         ? getStatusLabel(currentStatus)
                                         : "Memuat..."}

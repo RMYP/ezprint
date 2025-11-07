@@ -1,4 +1,3 @@
-// hooks/use-safe-login.ts
 "use client";
 
 import { useState, useEffect } from "react";
