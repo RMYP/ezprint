@@ -58,11 +58,26 @@ export async function GET(
             }
         );
         if (getTransaction.data?.transaction_status === "settlement") {
-            await prisma.payment.updateMany({
+            const paymentData = await prisma.payment.findFirst({
                 where: { transactionId: id },
-                data: { transactionStatus: "settlement" },
+                select: { orderId: true },
             });
 
+            if (paymentData) {
+                await prisma.$transaction([
+                    prisma.payment.updateMany({
+                        where: { transactionId: id },
+                        data: { transactionStatus: "settlement" },
+                    }),
+                    prisma.order.update({
+                        where: { id: paymentData.orderId },
+                        data: {
+                            paymentStatus: true,
+                            status: "onProgress",
+                        },
+                    }),
+                ]);
+            }
             return NextResponse.redirect(`${BaseUrl}/status/${id}`);
         }
 

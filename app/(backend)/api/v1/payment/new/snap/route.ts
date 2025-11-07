@@ -56,7 +56,6 @@ export async function POST(request: Request) {
             callbacks: { finish: `${BaseUrl}/` },
         };
 
-        // get snap token
         const snapResponse = await snap.createTransaction(snapParameter);
         const snapToken = snapResponse.token;
 
