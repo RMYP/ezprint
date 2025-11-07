@@ -12,7 +12,13 @@ interface ItemDetails {
   quantity: number | null;
   category: string | null;
 }
-
+//  SnapAPI
+export const snap = new MidtransClient.Snap({
+  isProduction: isProduction,
+  serverKey: MidtransServerKey,
+  clientKey: MidtransClientKey,
+});
+// coreAPI
 export const coreAPI = new MidtransClient.CoreApi({
   isProduction: isProduction,
   serverKey: MidtransServerKey,
