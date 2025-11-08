@@ -54,13 +54,13 @@ import {
 
 const desktopMenuItems = [
     { label: "Home", href: "/home" },
-    { label: "Pesan Sekarang", href: "/orderbeta" },
+    { label: "Pesan Sekarang", href: "/order" },
     { label: "Lacak Pesanan", href: "/transaction" },
 ];
 
 const mobileMenuItems = [
     { label: "Home", icon: Home, href: "/home" },
-    { label: "Pesan Sekarang", icon: Package, href: "/orderbeta" },
+    { label: "Pesan Sekarang", icon: Package, href: "/order" },
     { label: "Lacak Pesanan", icon: FileText, href: "/transaction" },
     { label: "Keranjang", icon: ShoppingCart, href: "/chart" },
 ];

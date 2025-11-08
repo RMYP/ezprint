@@ -1,359 +1,630 @@
 "use client";
 
-import toast from "react-hot-toast";
-import Navbar from "@/components/exNavbar";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
-
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast"; //
 import { useForm, Controller } from "react-hook-form";
-
-import { zodResolver } from "@hookform/resolvers/zod";
+import Navbar from "@/components/exNavbar";
+import { zodResolver } from "@hookform/resolvers/zod"; //
 import * as z from "zod";
 
-import { useRouter } from "next/navigation";
-import { useSimulation } from "@/hooks/price-simulation.store";
-import { useState } from "react";
-
-import { useLogin } from "@/hooks/user-store";
+import { useSimulation } from "@/hooks/price-simulation.store"; //
+import { useLogin } from "@/hooks/user-store"; //
 
 import { createCheckout, uploadFileCheckout } from "../../action/action";
 
-const priceSimulationSchema = z.object({
-  sheetCount: z
-    .number({ required_error: "Sheet count is required" })
-    .min(1, "Must be at least 1"),
-  paperType: z
-    .string({ required_error: "Jenis kertas is required" })
-    .nonempty("Jenis kertas is required"),
-  finishing: z
-    .string({ required_error: "Finishing option is required" })
-    .nonempty("Finishing option is required"),
-  printingType: z
-    .string({ required_error: "Jenis print is required" })
-    .nonempty("Jenis print is required"),
-  quantity: z
-    .number({ required_error: "Jumlah rangkap is required" })
-    .min(1, "Pembelian minimal 1 rangkap"),
-});
+// helper
+// note: pindahin ke lib
+const formatPrice = (price: number | null | undefined) => {
+    if (price === null || price === undefined) return "N/A";
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+    }).format(price);
+};
 
+import { Button } from "@/components/ui/button"; //
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Loader2, FileText, UploadCloud, X, Home, Store } from "lucide-react";
+
+const priceSimulationSchema = z.object({
+    sheetCount: z
+        .number({ required_error: "Jumlah halaman wajib diisi" })
+        .min(1, "Minimal 1 halaman"),
+    paperType: z
+        .string({ required_error: "Jenis kertas wajib dipilih" })
+        .nonempty("Jenis kertas wajib dipilih"),
+    finishing: z
+        .string({ required_error: "Finishing wajib dipilih" })
+        .nonempty("Finishing wajib dipilih"),
+    printType: z
+        .string({ required_error: "Jenis print wajib dipilih" })
+        .nonempty("Jenis print wajib dipilih"),
+    quantity: z
+        .number({ required_error: "Jumlah rangkap wajib diisi" })
+        .min(1, "Minimal 1 rangkap"),
+});
 type PriceSimulationForm = z.infer<typeof priceSimulationSchema>;
 
-export default function Page() {
-  const [isLoadingWhileUploading, setIsLoadingWhileUploading] = useState(false);
-  const [isSuccessUploadingFile, setIsSuccessUploadingFile] = useState(false);
-  const [isSuccessCheckout, setisSuccessCheckout] = useState(false);
-  const token = useLogin((state) => state.token);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [orderId, setOrderId] = useState("");
-  const paperType = useSimulation((state) => state.paperType);
-  const finishingOption = useSimulation((state) => state.finishingOption);
-  const setPrice = useSimulation((state) => state.setCheckout);
-  const printingType = useSimulation((state) => state.printingType);
-  const calculatedPrice = useSimulation((state) => state.checkoutPrice);
-  const router = useRouter();
-
-  const form = useForm<PriceSimulationForm>({
-    resolver: zodResolver(priceSimulationSchema),
-    defaultValues: {
-      sheetCount: undefined,
-      paperType: "",
-      finishing: "",
-      printingType: "",
-      quantity: 1,
+const mockUserAddresses = [
+    {
+        id: "addr_1",
+        type: "store",
+        label: "Ambil di Toko",
+        address: "Toko EzPrint, Jl. Perjuangan, gg. Alam Segar 2 No.2",
+        icon: Store,
     },
-  });
+    {
+        id: "addr_2",
+        type: "gosend",
+        label: "Alamat Rumah (GoSend)",
+        address: "Jl. A. Wahab Syahranie Gg. 5 No. 42",
+        icon: Home,
+    },
+];
+type MockAddress = (typeof mockUserAddresses)[0];
 
-  const onSubmit = async (data: PriceSimulationForm) => {
-    const selectedPaper = paperType.find((p) => p.type === data.paperType);
-    const selectedFinishing = finishingOption.find(
-      (f) => f.type === data.finishing
+// --- Mockup Function ---
+// Ganti ini dengan import asli Anda nanti
+// const uploadFileCheckout = (file: File, token: string) => {
+//     console.log("MOCK UPLOAD:", file.name, "TOKEN:", token);
+//     return new Promise<{ id: string }>((resolve) =>
+//         setTimeout(() => resolve({ id: `order_${Date.now()}` }), 1500)
+//     );
+// };
+// const createCheckout = (data: any, token: string) => {
+//     console.log("MOCK CHECKOUT:", data, "TOKEN:", token);
+//     return new Promise<{ id: string }>((resolve) =>
+//         setTimeout(() => resolve(data.fieldId), 1000)
+//     );
+// };
+
+export default function OrderPageRedesign() {
+    const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [isLoading, setIsLoading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedAddress, setSelectedAddress] = useState<MockAddress>(
+        mockUserAddresses[0]
     );
+    const [isCalculatedPrice, setIsCalculatedPrice] = useState(false);
 
-    if (selectedPaper && selectedFinishing) {
-      setPrice(
-        data.sheetCount,
-        selectedPaper.price,
-        selectedFinishing.price,
-        data.quantity
-      );
-    }
+    const token = useLogin((state) => state.token) || "mock_token"; // Fallback ke mock token
+    const {
+        paperType,
+        finishingOption,
+        printingType,
+        setCheckout,
+        checkoutPrice,
+    } = useSimulation(); //
 
-    try {
-      if (selectedFile) {
-        toast.loading("Uploading file...");
-        setIsLoadingWhileUploading(true);
-        const checkout = await uploadFileCheckout(
-          selectedFile,
-          token as string
-        );
-        setOrderId(checkout.id);
-      }
-
-      toast.dismiss();
-      setIsLoadingWhileUploading(false);
-      setIsSuccessUploadingFile(true);
-      toast.success("Berhasil upload file");
-    } catch (err: unknown) {
-      toast.dismiss();
-      setIsLoadingWhileUploading(false);
-      toast.error(
-        err instanceof Error ? err.message : "Unexpected server error"
-      );
-    }
-  };
-
-  const handleCheckout = async () => {
-    try {
-      setisSuccessCheckout(true);
-      const data = await createCheckout(
-        {
-          fieldId: orderId,
-          sheetCount: form.getValues("sheetCount"),
-          paperType: form.getValues("paperType"),
-          finishing: form.getValues("finishing"),
-          quantity: form.getValues("quantity"),
-          printType: form.getValues("printingType"),
-          totalPrice: calculatedPrice,
+    // --- Setup Form (React Hook Form) ---
+    const form = useForm<PriceSimulationForm>({
+        resolver: zodResolver(priceSimulationSchema),
+        defaultValues: {
+            sheetCount: undefined,
+            paperType: "",
+            finishing: "Tanpa Jilid", // Set default
+            printType: "Cetak Satu Sisi (simplex)", // Set default
+            quantity: 1,
         },
-        token as string
-      );
+    });
 
-      router.push(`/checkout/${data.id}`);
-      setisSuccessCheckout(false);
-    } catch (err: unknown) {
-      toast.dismiss();
-      setisSuccessCheckout(false);
-      toast.error(
-        err instanceof Error ? err.message : "Unexpected server error"
-      );
-    }
-  };
 
-  return (
-    <div className="overflow-x-hidden">
-      <Navbar props="bg-white mb-3 shadow-md" />
-      <div className="bg-white py-4">
-        <p className="text-lg font-semibold text-center text-slate-700">
-          Buat Pesanan
-        </p>
-      </div>
-      <div className=" flex flex-col lg:flex-row justify-center gap-2 w-full space-y-8 py-3 ">
-        <div className="w-full lg:mx-5">
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="bg-white p-6 rounded-2xl shadow-lg space-y-6"
-          >
-            <div>
-              <label className="block text-gray-600 font-medium mb-2">
-                Jumlah Halaman
-              </label>
-              <input
-                required
-                type="number"
-                placeholder="Enter sheet count"
-                {...form.register("sheetCount", { valueAsNumber: true })}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              />
-              {form.formState.errors.sheetCount && (
-                <p className="text-red-500 text-sm mt-1">
-                  {form.formState.errors.sheetCount.message}
-                </p>
-              )}
+    // --- Handler Aksi ---
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setSelectedFile(e.target.files[0]);
+        }
+    };
+
+    const handleCalculatePrice = () => {
+        const {
+            sheetCount,
+            paperType: paperTypeValue,
+            finishing: finishingValue,
+            quantity,
+        } = form.getValues();
+
+        if (!sheetCount || !paperTypeValue || !finishingValue || !quantity) {
+            toast.error(
+                "Harap isi semua field konfigurasi (Jumlah Halaman, Kertas, Finishing, Kuantitas) untuk menghitung harga."
+            );
+            return;
+        }
+
+        const selectedPaper = paperType.find((p) => p.type === paperTypeValue);
+        const selectedFinishing = finishingOption.find(
+            (f) => f.type === finishingValue
+        );
+
+        if (selectedPaper && selectedFinishing) {
+            setCheckout(
+                sheetCount,
+                selectedPaper.price,
+                selectedFinishing.price,
+                quantity
+            );
+            setIsCalculatedPrice(true);
+            toast.success("Harga berhasil dikalkulasi!");
+        } else {
+            setIsCalculatedPrice(false);
+            toast.error(
+                "Gagal menghitung harga. Pastikan semua pilihan valid."
+            );
+        }
+    };
+
+    // Fungsi Checkout Utama (Satu Tombol)
+    const onSubmit = async (data: PriceSimulationForm) => {
+        if (!selectedFile) {
+            toast.error("Silakan pilih file dokumen Anda terlebih dahulu.");
+            return;
+        }
+
+        if (checkoutPrice === undefined || checkoutPrice === 0) {
+            toast.error("Harap klik 'Kalkulasi Harga' terlebih dahulu.");
+            return;
+        }
+
+        setIsLoading(true);
+        const orderToast = toast.loading("Memproses pesanan Anda...");
+
+        try {
+            // 1. Upload file
+            toast.loading("Mengunggah file...", { id: orderToast });
+            const { id: newOrderId } = await uploadFileCheckout(
+                selectedFile,
+                token as string
+            );
+
+            // 2. Buat pesanan (checkout)
+            toast.loading("Membuat pesanan...", { id: orderToast });
+            const checkoutData = {
+                fieldId: newOrderId,
+                ...data,
+                totalPrice: checkoutPrice,
+            };
+            const { id: orderId } = await createCheckout(
+                checkoutData,
+                token as string
+            );
+
+            // 3. Navigasi ke pembayaran
+            toast.success("Pesanan berhasil dibuat!", { id: orderToast });
+            router.push(`/checkout/${orderId}`);
+        } catch (err: unknown) {
+            const errorMessage =
+                err instanceof Error
+                    ? err.message
+                    : "Terjadi kesalahan tidak terduga";
+            toast.error(errorMessage, { id: orderToast });
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div>
+            <Navbar props="bg-white mb-3 shadow-md" />
+            <div className="bg-muted/40 min-h-screen p-4 md:p-8">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                    {/* === KOLOM KIRI (FORM) === */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <form
+                            onSubmit={form.handleSubmit(onSubmit)}
+                            id="order-form"
+                        >
+                            {/* --- 1. Kartu Upload Dokumen --- */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>1. Upload Dokumen</CardTitle>
+                                    <CardDescription>
+                                        Pilih file .pdf, .doc, atau .docx yang
+                                        ingin Anda cetak.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        className="hidden"
+                                        accept=".pdf,.doc,.docx"
+                                    />
+                                    {!selectedFile ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="w-full h-32 border-dashed border-2"
+                                            onClick={() =>
+                                                fileInputRef.current?.click()
+                                            }
+                                        >
+                                            <UploadCloud className="mr-2" />
+                                            Klik untuk memilih file
+                                        </Button>
+                                    ) : (
+                                        <div className="flex items-center justify-between p-4 border rounded-md">
+                                            <div className="flex items-center gap-3">
+                                                <FileText className="h-6 w-6 text-primary" />
+                                                <span className="font-medium">
+                                                    {selectedFile.name}
+                                                </span>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => {
+                                                    setSelectedFile(null);
+                                                    if (fileInputRef.current) {
+                                                        fileInputRef.current.value =
+                                                            "";
+                                                    }
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            {/* --- 2. Kartu Konfigurasi Cetak --- */}
+                            <Card className="mt-6">
+                                <CardHeader>
+                                    <CardTitle>2. Konfigurasi Cetak</CardTitle>
+                                    <CardDescription>
+                                        Sesuaikan pesanan Anda dengan kebutuhan.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <Label htmlFor="sheetCount">
+                                            Jumlah Halaman
+                                        </Label>
+                                        <Input
+                                            id="sheetCount"
+                                            type="number"
+                                            placeholder="Contoh: 100"
+                                            {...form.register("sheetCount", {
+                                                valueAsNumber: true,
+                                            })}
+                                        />
+                                        {form.formState.errors.sheetCount && (
+                                            <p className="text-red-500 text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .sheetCount.message
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="quantity">
+                                            Jumlah Rangkap (Qty)
+                                        </Label>
+                                        <Input
+                                            id="quantity"
+                                            type="number"
+                                            {...form.register("quantity", {
+                                                valueAsNumber: true,
+                                            })}
+                                        />
+                                        {form.formState.errors.quantity && (
+                                            <p className="text-red-500 text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .quantity.message
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Label>Jenis Kertas</Label>
+                                        <Controller
+                                            control={form.control}
+                                            name="paperType"
+                                            render={({ field }) => (
+                                                <Select
+                                                    onValueChange={
+                                                        field.onChange
+                                                    }
+                                                    value={field.value}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Pilih jenis kertas" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {paperType.map(
+                                                            (item) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        item.type
+                                                                    }
+                                                                    value={
+                                                                        item.type
+                                                                    }
+                                                                >
+                                                                    {item.type}{" "}
+                                                                    (
+                                                                    {formatPrice(
+                                                                        item.price
+                                                                    )}
+                                                                    /lbr)
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                        {form.formState.errors.paperType && (
+                                            <p className="text-red-500 text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .paperType.message
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Label>Jenis Print</Label>
+                                        <Controller
+                                            control={form.control}
+                                            name="printType"
+                                            render={({ field }) => (
+                                                <Select
+                                                    onValueChange={
+                                                        field.onChange
+                                                    }
+                                                    value={field.value}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Pilih tipe print" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {printingType.map(
+                                                            (item) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        item.type
+                                                                    }
+                                                                    value={
+                                                                        item.type
+                                                                    }
+                                                                >
+                                                                    {item.type}
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                        {form.formState.errors.printType && (
+                                            <p className="text-red-500 text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .printType.message
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <Label>Finishing</Label>
+                                        <Controller
+                                            control={form.control}
+                                            name="finishing"
+                                            render={({ field }) => (
+                                                <Select
+                                                    onValueChange={
+                                                        field.onChange
+                                                    }
+                                                    value={field.value}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Pilih finishing" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {finishingOption.map(
+                                                            (item) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        item.type
+                                                                    }
+                                                                    value={
+                                                                        item.type
+                                                                    }
+                                                                >
+                                                                    {item.type}{" "}
+                                                                    (+
+                                                                    {formatPrice(
+                                                                        item.price
+                                                                    )}
+                                                                    )
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                        {form.formState.errors.finishing && (
+                                            <p className="text-red-500 text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .finishing.message
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* --- 3. Kartu Alamat (Fitur Baru) --- */}
+                            <Card className="mt-6">
+                                <CardHeader>
+                                    <CardTitle>3. Metode Pengambilan</CardTitle>
+                                    <CardDescription>
+                                        Pilih cara Anda ingin mengambil pesanan.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {mockUserAddresses.map((addr) => (
+                                        <div
+                                            key={addr.id}
+                                            className={`p-4 border rounded-lg cursor-pointer ${
+                                                selectedAddress.id === addr.id
+                                                    ? "border-primary ring-2 ring-primary/20"
+                                                    : "border-border"
+                                            }`}
+                                            onClick={() =>
+                                                setSelectedAddress(addr)
+                                            }
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <addr.icon className="h-5 w-5 text-primary" />
+                                                <span className="font-semibold">
+                                                    {addr.label}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-muted-foreground mt-1 ml-8">
+                                                {addr.address}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        </form>
+                    </div>
+
+                    {/* === KOLOM KANAN (RINGKASAN) === */}
+                    <div className="lg:col-span-1">
+                        <Card className="sticky top-6">
+                            <CardHeader>
+                                <CardTitle>Ringkasan Pesanan</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
+                                            Dokumen
+                                        </span>
+                                        <span>{selectedFile?.name || "-"}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
+                                            Jumlah Halaman
+                                        </span>
+                                        <span>
+                                            {form.watch("sheetCount") || 0} lbr
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
+                                            Jenis Kertas
+                                        </span>
+                                        <span>
+                                            {form.watch("paperType") || "-"}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
+                                            Finishing
+                                        </span>
+                                        <span>
+                                            {form.watch("finishing") || "-"}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
+                                            Kuantitas
+                                        </span>
+                                        <span>
+                                            {form.watch("quantity") || 0}x
+                                        </span>
+                                    </div>
+                                </div>
+                                {isCalculatedPrice ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={handleCalculatePrice}
+                                        disabled
+                                    >
+                                        Kalkulasi Harga
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={handleCalculatePrice}
+                                    >
+                                        Kalkulasi Harga
+                                    </Button>
+                                )}
+
+                                <Separator />
+                                <div className="flex justify-between items-center">
+                                    <span className="text-lg font-semibold">
+                                        Total Harga
+                                    </span>
+                                    <span className="text-2xl font-bold text-primary">
+                                        {formatPrice(checkoutPrice)}
+                                    </span>
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                {isCalculatedPrice ? (
+                                    <Button
+                                        type="submit"
+                                        form="order-form"
+                                        className="w-full text-lg py-6"
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? (
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                        ) : (
+                                            "Lanjutkan ke Pembayaran"
+                                        )}
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        type="submit"
+                                        form="order-form"
+                                        className="w-full text-lg py-6"
+                                        disabled
+                                    >
+                                        Lanjutkan ke Pembayaran
+                                    </Button>
+                                )}
+                            </CardFooter>
+                        </Card>
+                    </div>
+                </div>
             </div>
-
-            <div>
-              <label className="block text-gray-600 font-medium mb-2">
-                Jenis Kertas
-              </label>
-              <Controller
-                control={form.control}
-                name="paperType"
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih jenis kertas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paperType.map((item, index) => (
-                        <SelectItem key={index} value={item.type}>
-                          {item.type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {form.formState.errors.paperType && (
-                <p className="text-red-500 text-sm mt-1">
-                  {form.formState.errors.paperType.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-gray-600 font-medium mb-2">
-                Finishing
-              </label>
-              <Controller
-                control={form.control}
-                name="finishing"
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih finishing" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {finishingOption.map((item, index) => (
-                        <SelectItem key={index} value={item.type}>
-                          {item.type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {form.formState.errors.finishing && (
-                <p className="text-red-500 text-sm mt-1">
-                  {form.formState.errors.finishing.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-gray-600 font-medium mb-2">
-                Print duplex atau simplex
-              </label>
-              <Controller
-                control={form.control}
-                name="printingType"
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih tipe print" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {printingType.map((item, index) => (
-                        <SelectItem key={index} value={item.type}>
-                          {item.type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {form.formState.errors.printingType && (
-                <p className="text-red-500 text-sm mt-1">
-                  {form.formState.errors.printingType.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-gray-600 font-medium mb-2">
-                Jumlah Rangkap
-              </label>
-              <input
-                type="number"
-                placeholder="Enter quantity"
-                {...form.register("quantity", { valueAsNumber: true })}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-
-            <input
-              required
-              type="file"
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  setSelectedFile(e.target.files[0]);
-                }
-              }}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-
-            {isSuccessUploadingFile ? (
-              <Button type="submit" className="w-full" disabled>
-                Submit
-              </Button>
-            ) : (
-              <Button type="submit" className="w-full">
-                {isLoadingWhileUploading ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  "Submit"
-                )}
-              </Button>
-            )}
-          </form>
         </div>
-
-        <div className="max-w-lg w-full flex flex-col justify-center h-fit">
-          <div className="me-5 bg-white p-4 rounded-xl shadow-md">
-            <p className="text-lg font-semibold pt-2 ps-2">Metode Pengiriman</p>
-
-            <div className="p-2 mt-2 border border-blue-500 bg-blue-100 rounded-lg cursor-pointer">
-              <p className="text-blue-700 font-medium">✔ Ambil di Toko</p>
-            </div>
-
-            <div className="p-2 mt-2 bg-gray-100 text-gray-400 rounded-lg opacity-50 cursor-not-allowed">
-              <p>🚫 GoSend (Coming Soon)</p>
-            </div>
-
-            <div className="p-2 mt-2 bg-gray-100 text-gray-400 rounded-lg opacity-50 cursor-not-allowed">
-              <p>🚫 Grab (Coming Soon)</p>
-            </div>
-          </div>
-
-          <div className="me-5 bg-white p-4 rounded-xl shadow-md text-center flex flex-col justify-center items-center space-y-3 mt-5">
-            <h2 className="text-lg font-bold text-gray-700">
-              Calculation Result
-            </h2>
-            <p className="text-gray-600">Total Price:</p>
-            <p className="text-xl font-bold text-gray-800">
-              Rp.{(calculatedPrice && calculatedPrice) || "0"}
-            </p>
-            {isSuccessUploadingFile ? (
-              <div className="flex flex-row w-full gap-3 pt-3">
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={handleCheckout}
-                >
-                  Masukan Keranjang
-                </Button>
-                <Button className="w-full" onClick={handleCheckout}>
-                  {isSuccessCheckout ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    "Checkout"
-                  )}
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-row w-full gap-3 pt-3">
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={handleCheckout}
-                  disabled
-                >
-                  Masukan Keranjang
-                </Button>
-                <Button className="w-full" onClick={handleCheckout} disabled>
-                  Checkout
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

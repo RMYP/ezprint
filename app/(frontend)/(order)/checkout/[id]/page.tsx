@@ -1,37 +1,24 @@
 "use client";
 
 import Navbar from "@/components/exNavbar";
-import {
-    getTransaction,
-    handleBankCheckout,
-} from "@/app/(frontend)/action/action";
+import { getTransaction } from "@/app/(frontend)/action/action";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
-    CardDescription,
     CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Loader2, CreditCard, Wallet } from "lucide-react";
-
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import toast from "react-hot-toast";
 
 interface TransactionInterfaceDetail {
     totalSheet: number;
@@ -44,7 +31,7 @@ interface TransactionInterfaceDetail {
     printType: string;
 }
 
-// Komponen Skeleton untuk Ringkasan
+// Komponen Skeleton untuk loading
 function SummarySkeleton() {
     return (
         <div className="space-y-2">
@@ -56,14 +43,6 @@ function SummarySkeleton() {
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-4 w-16" />
             </div>
-            <div className="flex justify-between">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-20" />
-            </div>
-            <div className="flex justify-between">
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-28" />
-            </div>
             <Separator className="my-4" />
             <div className="flex justify-between">
                 <Skeleton className="h-6 w-24" />
@@ -73,15 +52,14 @@ function SummarySkeleton() {
     );
 }
 
-export default function PaymentPage({
+export default function CheckoutPage({
     params,
 }: {
     params: Promise<{ id: string }>;
 }) {
     const [isLoading, setIsLoading] = useState(true);
+    const [isPaymentLoading, setIsPaymentLoading] = useState(false);
     const router = useRouter();
-    const [isCheckout, setIsCheckout] = useState(false);
-    const [bank, setBank] = useState("");
     const [transaction, setTransaction] =
         useState<TransactionInterfaceDetail | null>(null);
     const [orderId, setOrderId] = useState("");
@@ -98,7 +76,6 @@ export default function PaymentPage({
             } catch (err) {
                 console.error(err);
                 toast.error("Gagal memuat detail transaksi.");
-                setTransaction(null);
             } finally {
                 setIsLoading(false);
             }
@@ -107,62 +84,105 @@ export default function PaymentPage({
         fetchTransaction();
     }, [params]);
 
-    const onClickBankPayment = async (selectedBank: string) => {
-        if (!selectedBank) {
-            toast.error("Harap pilih bank terlebih dahulu.");
-            return;
-        }
+    const handlePay = async () => {
+        setIsPaymentLoading(true);
+        const toastId = toast.loading("Memproses pembayaran...");
 
-        const paymentType =
-            selectedBank === "mandiri"
-                ? "echannel"
-                : selectedBank === "permata"
-                ? "permata"
-                : "bank_transfer";
-        
         try {
-            setIsCheckout(true);
-            const response = await handleBankCheckout(orderId, selectedBank, paymentType);
-            const newLink = `/checkout/payment/${response.transaction_id}/${response.oderId}`;
-            router.push(newLink);
-        } catch (err: unknown) {
+            const response = await axios.post(
+                "/api/v1/payment/new/snap",
+                { id: orderId },
+                { withCredentials: true }
+            );
+
+            toast.dismiss(toastId);
+
+            if (response.data.success) {
+                if ((window as any).snap) {
+                    (window as any).snap.pay(response.data.data.token, {
+                        onSuccess: function (result: any) {
+                            console.log("Payment success", result);
+                            toast.success("Pembayaran Berhasil!");
+                            router.push(`/status/${orderId}`);
+                        },
+                        onPending: function (result: any) {
+                            console.log("Payment pending", result);
+                            toast("Menunggu pembayaran...", { icon: "⏳" });
+                            router.push(`/status/${orderId}`);
+                        },
+                        onError: function (result: any) {
+                            console.error("Payment error", result);
+                            toast.error("Pembayaran Gagal!");
+                        },
+                        onClose: function () {
+                            console.log(
+                                "Customer closed the popup without finishing the payment"
+                            );
+                            toast("Anda menutup pembayaran sebelum selesai.", {
+                                icon: "⚠️",
+                            });
+                        },
+                    });
+                } else {
+                    toast.error(
+                        "Gagal memuat sistem pembayaran (Snap not found). Refresh halaman."
+                    );
+                }
+            } else {
+                toast.error(
+                    response.data.message || "Gagal membuat transaksi."
+                );
+            }
+        } catch (error: any) {
+            console.error("Checkout Error:", error);
+            toast.dismiss(toastId);
             toast.error(
-                err instanceof Error ? err.message : "Unexpected server error"
+                error.response?.data?.message ||
+                    "Terjadi kesalahan saat memproses pembayaran."
             );
         } finally {
-            setIsCheckout(false);
+            setIsPaymentLoading(false);
         }
     };
 
     return (
-        <div>
-            <Navbar props="bg-white" />
-            <div className="bg-muted/40 min-h-screen p-4 md:p-8">
-                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-                    
-                    {/* === KOLOM KIRI (Metode Pembayaran) === */}
+        <div className="min-h-screen bg-muted/40">
+            <Navbar props="bg-white shadow-sm" />
+
+            <main className="container max-w-6xl mx-auto p-4 md:p-8">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
+                    Checkout Pesanan
+                </h1>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* === KOLOM KIRI: Detail Customer & Info === */}
                     <div className="lg:col-span-2 space-y-6">
+                        {/* Kartu Detail Pelanggan */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Detail Pelanggan</CardTitle>
+                                <CardTitle>Informasi Pemesan</CardTitle>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <Label>Nama</Label>
+                                    <Label className="text-muted-foreground">
+                                        Nama
+                                    </Label>
                                     {isLoading ? (
-                                        <Skeleton className="h-6 w-40" />
+                                        <Skeleton className="h-6 w-3/4 mt-1" />
                                     ) : (
-                                        <p className="font-semibold text-md">
-                                            {transaction?.username || "-"}
+                                        <p className="font-medium text-lg">
+                                            {transaction?.username}
                                         </p>
                                     )}
                                 </div>
                                 <div>
-                                    <Label>Nomor Telepon</Label>
+                                    <Label className="text-muted-foreground">
+                                        Nomor Telepon
+                                    </Label>
                                     {isLoading ? (
-                                        <Skeleton className="h-6 w-32" />
+                                        <Skeleton className="h-6 w-1/2 mt-1" />
                                     ) : (
-                                        <p className="font-semibold text-md">
+                                        <p className="font-medium text-lg">
                                             {transaction?.phoneNumber || "-"}
                                         </p>
                                     )}
@@ -170,136 +190,97 @@ export default function PaymentPage({
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Pilih Metode Pembayaran</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {/* Opsi Bank Transfer */}
-                                <div className="border border-border rounded-lg p-4 space-y-3">
-                                    <div className="flex items-center gap-3">
-                                        <CreditCard className="h-5 w-5 text-primary" />
-                                        <span className="font-semibold">
-                                            Bank Transfer (Virtual Account)
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground ml-8">
-                                        Bayar menggunakan nomor Virtual Account dari berbagai bank.
-                                    </p>
-                                    <div className="ml-8 pt-2">
-                                        <Label htmlFor="bank-select">Pilih Bank</Label>
-                                        <Select
-                                            value={bank}
-                                            onValueChange={setBank}
-                                            disabled={isLoading}
-                                        >
-                                            <SelectTrigger id="bank-select">
-                                                <SelectValue placeholder="Pilih bank Anda" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    <SelectItem value="bca">BCA</SelectItem>
-                                                    <SelectItem value="bri">BRI</SelectItem>
-                                                    <SelectItem value="bni">BNI</SelectItem>
-                                                    <SelectItem value="permata">Permata</SelectItem>
-                                                    <SelectItem value="cimb">CIMB</SelectItem>
-                                                    <SelectItem value="mandiri">Mandiri</SelectItem>
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                        {/* Kartu Informasi Pembayaran Aman */}
+                        <Card className="bg-blue-50/50 border-blue-100">
+                            <CardContent className="flex items-center gap-4 p-4 md:p-6">
+                                <div className="bg-blue-100 p-3 rounded-full">
+                                    <ShieldCheck className="h-6 w-6 text-blue-600" />
                                 </div>
-
-                                {/* Opsi E-Wallet (Disabled) */}
-                                <div className="border border-border rounded-lg p-4 space-y-3 opacity-50 cursor-not-allowed">
-                                    <div className="flex items-center gap-3">
-                                        <Wallet className="h-5 w-5 text-muted-foreground" />
-                                        <span className="font-semibold text-muted-foreground">
-                                            E-Wallet (Coming Soon)
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground ml-8">
-                                        Pembayaran via QRIS, GoPay, dan lainnya akan segera hadir.
+                                <div>
+                                    <h3 className="font-semibold text-blue-900">
+                                        Pembayaran Aman & Mudah
+                                    </h3>
+                                    <p className="text-sm text-blue-700/80 mt-1">
+                                        Pilih metode pembayaran favorit Anda
+                                        (Transfer Bank, E-Wallet, QRIS, dll) di
+                                        langkah selanjutnya.
                                     </p>
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* === KOLOM KANAN (Ringkasan) === */}
+                    {/* === KOLOM KANAN: Ringkasan & Tombol Bayar === */}
                     <div className="lg:col-span-1">
-                        <Card className="sticky top-6">
-                            <CardHeader>
-                                <CardTitle>Ringkasan Pesanan</CardTitle>
+                        <Card className="sticky top-24 shadow-md border-t-4 border-t-primary">
+                            <CardHeader className="pb-4">
+                                <CardTitle>Ringkasan Pembayaran</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                {isLoading || !transaction ? (
+                                {isLoading ? (
                                     <SummarySkeleton />
                                 ) : (
                                     <div className="space-y-3 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Dokumen</span>
-                                            <span className="font-medium text-right break-all max-w-[60%]">
-                                                {transaction.documentName}
+                                        <div className="flex justify-between items-start gap-2">
+                                            <span className="text-muted-foreground shrink-0">
+                                                Dokumen
+                                            </span>
+                                            <span className="font-medium text-right break-all">
+                                                {transaction?.documentName}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Total Halaman</span>
-                                            <span className="font-medium">
-                                                {transaction.totalSheet} lbr
+                                            <span className="text-muted-foreground">
+                                                Spesifikasi
+                                            </span>
+                                            <span className="font-medium text-right">
+                                                {transaction?.paperType},{" "}
+                                                {transaction?.printType}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Jenis Kertas</span>
+                                            <span className="text-muted-foreground">
+                                                Qty
+                                            </span>
                                             <span className="font-medium">
-                                                {transaction.paperType}
+                                                {transaction?.totalSheet} lbr x{" "}
+                                                {transaction?.quantity}
                                             </span>
                                         </div>
-                                        {/* <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Finishing</span>
-                                            <span className="font-medium">
-                                                {transaction.finishing}
-                                            </span>
-                                        </div> */}
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Tipe Cetak</span>
-                                            <span className="font-medium">
-                                                {transaction.printType}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Kuantitas</span>
-                                            <span className="font-medium">
-                                                {transaction.quantity}x
-                                            </span>
-                                        </div>
+
                                         <Separator className="my-4" />
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-lg font-semibold">Total Harga</span>
+
+                                        <div className="flex justify-between items-center pt-2">
+                                            <span className="text-lg font-semibold">
+                                                Total Tagihan
+                                            </span>
                                             <span className="text-2xl font-bold text-primary">
-                                                {transaction.totalPayment}
+                                                {transaction?.totalPayment}
                                             </span>
                                         </div>
                                     </div>
                                 )}
                             </CardContent>
-                            <CardFooter>
+                            <CardFooter className="pt-2 pb-6">
                                 <Button
-                                    className="w-full text-lg py-6"
-                                    onClick={() => onClickBankPayment(bank)}
-                                    disabled={!bank || isCheckout || isLoading}
+                                    className="w-full text-lg h-12"
+                                    onClick={handlePay}
+                                    disabled={isLoading || isPaymentLoading}
                                 >
-                                    {isCheckout ? (
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    {isPaymentLoading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                            Memuat...
+                                        </>
                                     ) : (
-                                        "Bayar Sekarang"
+                                        "Pilih Pembayaran"
                                     )}
                                 </Button>
                             </CardFooter>
                         </Card>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

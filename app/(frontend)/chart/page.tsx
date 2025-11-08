@@ -310,7 +310,7 @@ export default function Page() {
                                 </p>
                                 <Button
                                     className="mt-6"
-                                    onClick={() => router.push("/orderbeta")}
+                                    onClick={() => router.push("/order")}
                                 >
                                     Mulai Belanja
                                 </Button>
