@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -248,6 +249,20 @@ export default function CheckoutPage({
                                             </span>
                                         </div>
 
+                                        {transaction?.totalPayment &&
+                                            (parseInt(
+                                                transaction.totalPayment.replace(
+                                                    /\D/g,
+                                                    ""
+                                                )
+                                            ) < 50000 ? (
+                                                <Alert className="mb-4">
+                                                    <AlertTitle className="flex items-center justify-center">
+                                                        Pesanan &lt; Rp50.000
+                                                        kena admin Rp2.500
+                                                    </AlertTitle>
+                                                </Alert>
+                                            ) : null)}
                                         <Separator className="my-4" />
 
                                         <div className="flex justify-between items-center pt-2">

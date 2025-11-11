@@ -30,31 +30,67 @@ export async function POST(request: Request) {
         });
 
         if (!getOrder) return httpResponse(404, false, "Order not found", null);
+        if (!getOrder.totalPrice)
+            return httpResponse(404, false, "Order not found", null);
 
         const transactionId = uuidv4();
+        const ADMIN_FEE = 1000;
 
-        const snapParameter = {
-            transaction_details: {
-                order_id: transactionId,
-                gross_amount: getOrder.totalPrice,
-            },
-            item_details: [
-                {
-                    id: getOrder.id,
-                    price: getOrder.totalPrice,
-                    quantity: getOrder.quantity,
-                    name: `Cetak Dokumen (${getOrder.sheetCount} lbr)`,
-                    category: getOrder.printType,
+        const createSnapParams = (getOrder: any) => {
+            if (getOrder.totalPrice < 50000) {
+                return {
+                    transaction_details: {
+                        order_id: transactionId,
+                        gross_amount: getOrder.totalPrice + ADMIN_FEE,
+                    },
+                    item_details: [
+                        {
+                            id: getOrder.id,
+                            price: getOrder.totalPrice,
+                            quantity: getOrder.quantity,
+                            name: `Cetak Dokumen (${getOrder.sheetCount} lbr)`,
+                            category: getOrder.printType,
+                        },
+                        {
+                            id: "ADMIN-FEE",
+                            price: ADMIN_FEE,
+                            quantity: 1,
+                            name: "Biaya Layanan/Admin",
+                            category: "FEE",
+                        },
+                    ],
+                    customer_details: {
+                        first_name: getOrder.user.username,
+                        email: decodeJwt.email,
+                        phone: getOrder.user.phoneNum || "",
+                    },
+                    callbacks: { finish: `${BaseUrl}/` },
+                };
+            }
+            return {
+                transaction_details: {
+                    order_id: transactionId,
+                    gross_amount: getOrder.totalPrice,
                 },
-            ],
-            customer_details: {
-                first_name: getOrder.user.username,
-                email: decodeJwt.email,
-                phone: getOrder.user.phoneNum || "",
-            },
-            callbacks: { finish: `${BaseUrl}/` },
+                item_details: [
+                    {
+                        id: getOrder.id,
+                        price: getOrder.totalPrice,
+                        quantity: getOrder.quantity,
+                        name: `Cetak Dokumen (${getOrder.sheetCount} lbr)`,
+                        category: getOrder.printType,
+                    },
+                ],
+                customer_details: {
+                    first_name: getOrder.user.username,
+                    email: decodeJwt.email,
+                    phone: getOrder.user.phoneNum || "",
+                },
+                callbacks: { finish: `${BaseUrl}/` },
+            };
         };
 
+        const snapParameter = createSnapParams(getOrder);
         const snapResponse = await snap.createTransaction(snapParameter);
         const snapToken = snapResponse.token;
 

@@ -107,11 +107,11 @@ export default function Navbar({ props }: { props?: string }) {
                     >
                         <Image
                             src={"/logo.png"}
-                            alt="EzPrint Logo"
+                            alt="PrintKampus Logo"
                             width={40}
                             height={40}
                         />
-                        <span className="text-xl">EzPrint</span>
+                        <span className="text-xl">PrintKampus</span>
                     </Link>
                     <Separator orientation="vertical" className="h-6" />
                     <nav className="flex items-center gap-4">

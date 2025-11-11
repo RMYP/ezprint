@@ -2,29 +2,19 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast"; //
-import { useForm, Controller } from "react-hook-form";
+import toast from "react-hot-toast";
+import { useForm, Controller, useWatch } from "react-hook-form"; // Tambahkan useWatch
 import Navbar from "@/components/exNavbar";
-import { zodResolver } from "@hookform/resolvers/zod"; //
+import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
-import { useSimulation } from "@/hooks/price-simulation.store"; //
-import { useLogin } from "@/hooks/user-store"; //
+import { useSimulation } from "@/hooks/price-simulation.store";
+import { useLogin } from "@/hooks/user-store";
 
 import { createCheckout, uploadFileCheckout } from "../../action/action";
 
-// helper
-// note: pindahin ke lib
-const formatPrice = (price: number | null | undefined) => {
-    if (price === null || price === undefined) return "N/A";
-    return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        minimumFractionDigits: 0,
-    }).format(price);
-};
-
-import { Button } from "@/components/ui/button"; //
+import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
@@ -44,6 +34,16 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Loader2, FileText, UploadCloud, X, Home, Store } from "lucide-react";
+
+// Helper format price
+const formatPrice = (price: number | null | undefined) => {
+    if (price === null || price === undefined) return "Rp 0";
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+    }).format(price);
+};
 
 const priceSimulationSchema = z.object({
     sheetCount: z
@@ -82,107 +82,112 @@ const mockUserAddresses = [
 ];
 type MockAddress = (typeof mockUserAddresses)[0];
 
-// --- Mockup Function ---
-// Ganti ini dengan import asli Anda nanti
-// const uploadFileCheckout = (file: File, token: string) => {
-//     console.log("MOCK UPLOAD:", file.name, "TOKEN:", token);
-//     return new Promise<{ id: string }>((resolve) =>
-//         setTimeout(() => resolve({ id: `order_${Date.now()}` }), 1500)
-//     );
-// };
-// const createCheckout = (data: any, token: string) => {
-//     console.log("MOCK CHECKOUT:", data, "TOKEN:", token);
-//     return new Promise<{ id: string }>((resolve) =>
-//         setTimeout(() => resolve(data.fieldId), 1000)
-//     );
-// };
-
 export default function OrderPageRedesign() {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [isLoading, setIsLoading] = useState(false);
+    // State baru untuk indikator sedang menunggu kalkulasi debounce
+    const [isCalculating, setIsCalculating] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedAddress, setSelectedAddress] = useState<MockAddress>(
         mockUserAddresses[0]
     );
+    // isCalculatedPrice tetap dipakai untuk memastikan harga valid sebelum checkout
     const [isCalculatedPrice, setIsCalculatedPrice] = useState(false);
 
-    const token = useLogin((state) => state.token) || "mock_token"; // Fallback ke mock token
+    const token = useLogin((state) => state.token);
     const {
         paperType,
         finishingOption,
         printingType,
         setCheckout,
         checkoutPrice,
-    } = useSimulation(); //
+    } = useSimulation();
 
-    // --- Setup Form (React Hook Form) ---
     const form = useForm<PriceSimulationForm>({
         resolver: zodResolver(priceSimulationSchema),
+        mode: "onChange", // Agar validasi berjalan real-time
         defaultValues: {
             sheetCount: undefined,
             paperType: "",
-            finishing: "Tanpa Jilid", // Set default
-            printType: "Cetak Satu Sisi (simplex)", // Set default
+            finishing: "Tanpa Jilid",
+            printType: "Cetak Satu Sisi (simplex)",
             quantity: 1,
         },
     });
 
+    const watchedValues = useWatch({
+        control: form.control,
+    });
 
-    // --- Handler Aksi ---
+    useEffect(() => {
+        const {
+            sheetCount,
+            paperType: selectedPaperType,
+            finishing,
+            quantity,
+        } = form.getValues();
+
+        const isFormValid =
+            sheetCount &&
+            sheetCount > 0 &&
+            selectedPaperType &&
+            finishing &&
+            quantity &&
+            quantity > 0;
+
+        if (!isFormValid) {
+            setIsCalculatedPrice(false);
+            setIsCalculating(false);
+            return;
+        }
+
+        // Mulai loading kalkulasi (menunggu debounce)
+        setIsCalculating(true);
+        // Set false dulu agar user tidak bisa checkout selama menunggu
+        setIsCalculatedPrice(false);
+
+        // Setup Timer Debounce (1 detik = 1000ms)
+        const debounceTimer = setTimeout(() => {
+            const paper = paperType.find((p) => p.type === selectedPaperType);
+            const finish = finishingOption.find((f) => f.type === finishing);
+
+            if (paper && finish) {
+                // Lakukan kalkulasi
+                setCheckout(sheetCount, paper.price, finish.price, quantity);
+                setIsCalculatedPrice(true);
+            }
+            // Selesai kalkulasi
+            setIsCalculating(false);
+        }, 1000);
+
+        // Cleanup function: akan dijalankan jika watchedValues berubah sebelum 1 detik
+        return () => {
+            clearTimeout(debounceTimer);
+        };
+    }, [watchedValues, paperType, finishingOption, setCheckout, form]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             setSelectedFile(e.target.files[0]);
         }
     };
 
-    const handleCalculatePrice = () => {
-        const {
-            sheetCount,
-            paperType: paperTypeValue,
-            finishing: finishingValue,
-            quantity,
-        } = form.getValues();
-
-        if (!sheetCount || !paperTypeValue || !finishingValue || !quantity) {
-            toast.error(
-                "Harap isi semua field konfigurasi (Jumlah Halaman, Kertas, Finishing, Kuantitas) untuk menghitung harga."
-            );
+    const onSubmit = async (data: PriceSimulationForm) => {
+        if (!token) {
+            toast.error("Anda harus login terlebih dahulu.");
+            router.push("/login");
             return;
         }
-
-        const selectedPaper = paperType.find((p) => p.type === paperTypeValue);
-        const selectedFinishing = finishingOption.find(
-            (f) => f.type === finishingValue
-        );
-
-        if (selectedPaper && selectedFinishing) {
-            setCheckout(
-                sheetCount,
-                selectedPaper.price,
-                selectedFinishing.price,
-                quantity
-            );
-            setIsCalculatedPrice(true);
-            toast.success("Harga berhasil dikalkulasi!");
-        } else {
-            setIsCalculatedPrice(false);
-            toast.error(
-                "Gagal menghitung harga. Pastikan semua pilihan valid."
-            );
-        }
-    };
-
-    // Fungsi Checkout Utama (Satu Tombol)
-    const onSubmit = async (data: PriceSimulationForm) => {
         if (!selectedFile) {
             toast.error("Silakan pilih file dokumen Anda terlebih dahulu.");
             return;
         }
 
-        if (checkoutPrice === undefined || checkoutPrice === 0) {
-            toast.error("Harap klik 'Kalkulasi Harga' terlebih dahulu.");
+        // Double check safety, meskipun tombol sudah didisable
+        if (!isCalculatedPrice || isCalculating) {
+            toast.error("Mohon tunggu perhitungan harga selesai.");
             return;
         }
 
@@ -190,14 +195,12 @@ export default function OrderPageRedesign() {
         const orderToast = toast.loading("Memproses pesanan Anda...");
 
         try {
-            // 1. Upload file
             toast.loading("Mengunggah file...", { id: orderToast });
             const { id: newOrderId } = await uploadFileCheckout(
                 selectedFile,
                 token as string
             );
 
-            // 2. Buat pesanan (checkout)
             toast.loading("Membuat pesanan...", { id: orderToast });
             const checkoutData = {
                 fieldId: newOrderId,
@@ -209,7 +212,6 @@ export default function OrderPageRedesign() {
                 token as string
             );
 
-            // 3. Navigasi ke pembayaran
             toast.success("Pesanan berhasil dibuat!", { id: orderToast });
             router.push(`/checkout/${orderId}`);
         } catch (err: unknown) {
@@ -238,8 +240,7 @@ export default function OrderPageRedesign() {
                                 <CardHeader>
                                     <CardTitle>1. Upload Dokumen</CardTitle>
                                     <CardDescription>
-                                        Pilih file .pdf, .doc, atau .docx yang
-                                        ingin Anda cetak.
+                                        Pilih file .pdf yang ingin Anda cetak.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -248,7 +249,7 @@ export default function OrderPageRedesign() {
                                         ref={fileInputRef}
                                         onChange={handleFileChange}
                                         className="hidden"
-                                        accept=".pdf,.doc,.docx"
+                                        accept=".pdf"
                                     />
                                     {!selectedFile ? (
                                         <Button
@@ -260,20 +261,31 @@ export default function OrderPageRedesign() {
                                             }
                                         >
                                             <UploadCloud className="mr-2" />
-                                            Klik untuk memilih file
+                                            Klik untuk memilih file (PDF)
                                         </Button>
                                     ) : (
-                                        <div className="flex items-center justify-between p-4 border rounded-md">
-                                            <div className="flex items-center gap-3">
-                                                <FileText className="h-6 w-6 text-primary" />
-                                                <span className="font-medium">
-                                                    {selectedFile.name}
-                                                </span>
+                                        <div className="flex items-center justify-between p-4 border rounded-md bg-blue-50/50 border-blue-200">
+                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                <FileText className="h-8 w-8 text-blue-600 flex-shrink-0" />
+                                                <div className="truncate">
+                                                    <p className="font-medium text-blue-900 truncate">
+                                                        {selectedFile.name}
+                                                    </p>
+                                                    <p className="text-xs text-blue-700">
+                                                        {(
+                                                            selectedFile.size /
+                                                            1024 /
+                                                            1024
+                                                        ).toFixed(2)}{" "}
+                                                        MB
+                                                    </p>
+                                                </div>
                                             </div>
                                             <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon"
+                                                className="text-muted-foreground hover:text-destructive"
                                                 onClick={() => {
                                                     setSelectedFile(null);
                                                     if (fileInputRef.current) {
@@ -282,7 +294,7 @@ export default function OrderPageRedesign() {
                                                     }
                                                 }}
                                             >
-                                                <X className="h-4 w-4" />
+                                                <X className="h-5 w-5" />
                                             </Button>
                                         </div>
                                     )}
@@ -294,24 +306,27 @@ export default function OrderPageRedesign() {
                                 <CardHeader>
                                     <CardTitle>2. Konfigurasi Cetak</CardTitle>
                                     <CardDescription>
-                                        Sesuaikan pesanan Anda dengan kebutuhan.
+                                        Harga akan dihitung otomatis setelah
+                                        Anda selesai mengisi.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Sheet Count */}
                                     <div>
                                         <Label htmlFor="sheetCount">
-                                            Jumlah Halaman
+                                            Jumlah Halaman (per rangkap)
                                         </Label>
                                         <Input
                                             id="sheetCount"
                                             type="number"
+                                            min={1}
                                             placeholder="Contoh: 100"
                                             {...form.register("sheetCount", {
                                                 valueAsNumber: true,
                                             })}
                                         />
                                         {form.formState.errors.sheetCount && (
-                                            <p className="text-red-500 text-sm mt-1">
+                                            <p className="text-destructive text-sm mt-1">
                                                 {
                                                     form.formState.errors
                                                         .sheetCount.message
@@ -319,6 +334,8 @@ export default function OrderPageRedesign() {
                                             </p>
                                         )}
                                     </div>
+
+                                    {/* Quantity */}
                                     <div>
                                         <Label htmlFor="quantity">
                                             Jumlah Rangkap (Qty)
@@ -326,12 +343,13 @@ export default function OrderPageRedesign() {
                                         <Input
                                             id="quantity"
                                             type="number"
+                                            min={1}
                                             {...form.register("quantity", {
                                                 valueAsNumber: true,
                                             })}
                                         />
                                         {form.formState.errors.quantity && (
-                                            <p className="text-red-500 text-sm mt-1">
+                                            <p className="text-destructive text-sm mt-1">
                                                 {
                                                     form.formState.errors
                                                         .quantity.message
@@ -339,6 +357,8 @@ export default function OrderPageRedesign() {
                                             </p>
                                         )}
                                     </div>
+
+                                    {/* Paper Type */}
                                     <div>
                                         <Label>Jenis Kertas</Label>
                                         <Controller
@@ -379,7 +399,7 @@ export default function OrderPageRedesign() {
                                             )}
                                         />
                                         {form.formState.errors.paperType && (
-                                            <p className="text-red-500 text-sm mt-1">
+                                            <p className="text-destructive text-sm mt-1">
                                                 {
                                                     form.formState.errors
                                                         .paperType.message
@@ -387,8 +407,10 @@ export default function OrderPageRedesign() {
                                             </p>
                                         )}
                                     </div>
+
+                                    {/* Print Type */}
                                     <div>
-                                        <Label>Jenis Print</Label>
+                                        <Label>Tipe Cetak</Label>
                                         <Controller
                                             control={form.control}
                                             name="printType"
@@ -400,7 +422,7 @@ export default function OrderPageRedesign() {
                                                     value={field.value}
                                                 >
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Pilih tipe print" />
+                                                        <SelectValue placeholder="Pilih tipe cetak" />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         {printingType.map(
@@ -421,15 +443,9 @@ export default function OrderPageRedesign() {
                                                 </Select>
                                             )}
                                         />
-                                        {form.formState.errors.printType && (
-                                            <p className="text-red-500 text-sm mt-1">
-                                                {
-                                                    form.formState.errors
-                                                        .printType.message
-                                                }
-                                            </p>
-                                        )}
                                     </div>
+
+                                    {/* Finishing */}
                                     <div className="md:col-span-2">
                                         <Label>Finishing</Label>
                                         <Controller
@@ -457,11 +473,12 @@ export default function OrderPageRedesign() {
                                                                     }
                                                                 >
                                                                     {item.type}{" "}
-                                                                    (+
-                                                                    {formatPrice(
-                                                                        item.price
-                                                                    )}
-                                                                    )
+                                                                    {item.price >
+                                                                    0
+                                                                        ? `(+${formatPrice(
+                                                                              item.price
+                                                                          )})`
+                                                                        : ""}
                                                                 </SelectItem>
                                                             )
                                                         )}
@@ -469,48 +486,51 @@ export default function OrderPageRedesign() {
                                                 </Select>
                                             )}
                                         />
-                                        {form.formState.errors.finishing && (
-                                            <p className="text-red-500 text-sm mt-1">
-                                                {
-                                                    form.formState.errors
-                                                        .finishing.message
-                                                }
-                                            </p>
-                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            {/* --- 3. Kartu Alamat (Fitur Baru) --- */}
+                            {/* --- 3. Kartu Alamat --- */}
                             <Card className="mt-6">
                                 <CardHeader>
                                     <CardTitle>3. Metode Pengambilan</CardTitle>
-                                    <CardDescription>
-                                        Pilih cara Anda ingin mengambil pesanan.
-                                    </CardDescription>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
+                                <CardContent className="space-y-3">
                                     {mockUserAddresses.map((addr) => (
                                         <div
                                             key={addr.id}
-                                            className={`p-4 border rounded-lg cursor-pointer ${
+                                            className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
                                                 selectedAddress.id === addr.id
-                                                    ? "border-primary ring-2 ring-primary/20"
-                                                    : "border-border"
+                                                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                                    : "border-border hover:border-primary/50"
                                             }`}
                                             onClick={() =>
                                                 setSelectedAddress(addr)
                                             }
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <addr.icon className="h-5 w-5 text-primary" />
-                                                <span className="font-semibold">
+                                            <addr.icon
+                                                className={`h-5 w-5 mt-0.5 ${
+                                                    selectedAddress.id ===
+                                                    addr.id
+                                                        ? "text-primary"
+                                                        : "text-muted-foreground"
+                                                }`}
+                                            />
+                                            <div>
+                                                <p
+                                                    className={`font-semibold ${
+                                                        selectedAddress.id ===
+                                                        addr.id
+                                                            ? "text-foreground"
+                                                            : "text-muted-foreground"
+                                                    }`}
+                                                >
                                                     {addr.label}
-                                                </span>
+                                                </p>
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {addr.address}
+                                                </p>
                                             </div>
-                                            <p className="text-sm text-muted-foreground mt-1 ml-8">
-                                                {addr.address}
-                                            </p>
                                         </div>
                                     ))}
                                 </CardContent>
@@ -520,18 +540,24 @@ export default function OrderPageRedesign() {
 
                     {/* === KOLOM KANAN (RINGKASAN) === */}
                     <div className="lg:col-span-1">
-                        <Card className="sticky top-6">
-                            <CardHeader>
+                        <Card className="sticky top-24 shadow-lg border-t-4 border-t-primary">
+                            <CardHeader className="pb-4">
                                 <CardTitle>Ringkasan Pesanan</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="space-y-2 text-sm">
+                                <div className="space-y-3 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">
                                             Dokumen
                                         </span>
-                                        <span>{selectedFile?.name || "-"}</span>
+                                        <span
+                                            className="font-medium truncate max-w-[150px]"
+                                            title={selectedFile?.name}
+                                        >
+                                            {selectedFile?.name || "-"}
+                                        </span>
                                     </div>
+                                    <Separator />
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">
                                             Jumlah Halaman
@@ -542,9 +568,18 @@ export default function OrderPageRedesign() {
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">
-                                            Jenis Kertas
+                                            Kuantitas
                                         </span>
                                         <span>
+                                            {form.watch("quantity") || 0}{" "}
+                                            rangkap
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
+                                            Kertas
+                                        </span>
+                                        <span className="text-right">
                                             {form.watch("paperType") || "-"}
                                         </span>
                                     </div>
@@ -552,74 +587,65 @@ export default function OrderPageRedesign() {
                                         <span className="text-muted-foreground">
                                             Finishing
                                         </span>
-                                        <span>
+                                        <span className="text-right">
                                             {form.watch("finishing") || "-"}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Kuantitas
-                                        </span>
-                                        <span>
-                                            {form.watch("quantity") || 0}x
-                                        </span>
-                                    </div>
                                 </div>
-                                {isCalculatedPrice ? (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="w-full"
-                                        onClick={handleCalculatePrice}
-                                        disabled
-                                    >
-                                        Kalkulasi Harga
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="w-full"
-                                        onClick={handleCalculatePrice}
-                                    >
-                                        Kalkulasi Harga
-                                    </Button>
-                                )}
+                                {checkoutPrice &&
+                                    (checkoutPrice < 50000 ? (
+                                        <Alert> 
+                                            <AlertTitle className="flex items-center justify-center">{`Pesanan < Rp50.000 kena admin Rp1.000`}</AlertTitle>
+                                        </Alert>
+                                    ) : (
+                                        <div></div>
+                                    ))}
+                                <Separator className="my-4" />
 
-                                <Separator />
                                 <div className="flex justify-between items-center">
                                     <span className="text-lg font-semibold">
                                         Total Harga
                                     </span>
-                                    <span className="text-2xl font-bold text-primary">
-                                        {formatPrice(checkoutPrice)}
-                                    </span>
+                                    <div className="text-right">
+                                        {isCalculating ? (
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <span className="text-sm font-medium">
+                                                    Menghitung...
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-2xl font-bold text-primary">
+                                                {isCalculatedPrice
+                                                    ? formatPrice(checkoutPrice)
+                                                    : "Rp 0"}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </CardContent>
                             <CardFooter>
-                                {isCalculatedPrice ? (
-                                    <Button
-                                        type="submit"
-                                        form="order-form"
-                                        className="w-full text-lg py-6"
-                                        disabled={isLoading}
-                                    >
-                                        {isLoading ? (
+                                <Button
+                                    type="submit"
+                                    form="order-form"
+                                    className="w-full text-lg py-6"
+                                    disabled={
+                                        isLoading ||
+                                        isCalculating ||
+                                        !isCalculatedPrice
+                                    }
+                                >
+                                    {isLoading ? (
+                                        <>
                                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                        ) : (
-                                            "Lanjutkan ke Pembayaran"
-                                        )}
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        type="submit"
-                                        form="order-form"
-                                        className="w-full text-lg py-6"
-                                        disabled
-                                    >
-                                        Lanjutkan ke Pembayaran
-                                    </Button>
-                                )}
+                                            Memproses...
+                                        </>
+                                    ) : isCalculating ? (
+                                        "Menunggu Kalkulasi..."
+                                    ) : (
+                                        "Lanjutkan ke Pembayaran"
+                                    )}
+                                </Button>
                             </CardFooter>
                         </Card>
                     </div>
