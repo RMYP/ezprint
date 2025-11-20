@@ -6,19 +6,16 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-    Avatar,
-    AvatarFallback,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     LogoutButtonMobile,
     LogoutButtonDekstop,
 } from "@/components/logoutButton";
-import { Skeleton } from "@/components/ui/skeleton"; 
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 // Hook baru kita
-import { useSafeLogin } from "@/hooks/use-safe-login"; 
+import { useSafeLogin } from "@/hooks/use-safe-login";
 
 import {
     Menu,
@@ -78,10 +75,7 @@ const NavActionsSkeleton = () => (
     </div>
 );
 
-const MobileNavActionsSkeleton = () => (
-    <Skeleton className="h-10 w-full" />
-);
-
+const MobileNavActionsSkeleton = () => <Skeleton className="h-10 w-full" />;
 
 export default function Navbar({ props }: { props?: string }) {
     const [loading, setLoading] = useState(false); // Untuk tombol login
@@ -142,13 +136,17 @@ export default function Navbar({ props }: { props?: string }) {
                                 onClick={() => router.push("/chart")}
                                 aria-label="Keranjang"
                             >
-                                <ShoppingCart/>
+                                <ShoppingCart />
                             </Button>
-                            
+
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" aria-label="Notifikasi">
-                                        <Bell/>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label="Notifikasi"
+                                    >
+                                        <Bell />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
@@ -235,7 +233,7 @@ export default function Navbar({ props }: { props?: string }) {
                         width={32}
                         height={32}
                     />
-                    <span className="text-lg">EzPrint</span>
+                    <span className="text-lg">PrintKampus</span>
                 </Link>
 
                 <Sheet>
@@ -258,7 +256,7 @@ export default function Navbar({ props }: { props?: string }) {
                                         width={32}
                                         height={32}
                                     />
-                                    <span className="text-lg">EzPrint</span>
+                                    <span className="text-lg">PrintKampus</span>
                                 </Link>
                             </SheetTitle>
                             {!isLoading && isLogin && (
@@ -288,7 +286,7 @@ export default function Navbar({ props }: { props?: string }) {
                                 </Button>
                             ))}
                         </nav>
-                        
+
                         {!isLoading && isLogin && (
                             <div className="p-4 border-t">
                                 <Button
@@ -314,7 +312,9 @@ export default function Navbar({ props }: { props?: string }) {
                             {isLoading ? (
                                 <MobileNavActionsSkeleton />
                             ) : isLogin ? (
-                                <LogoutButtonMobile props="w-full justify-center gap-3" />
+                                <Button>
+                                    <LogoutButtonMobile props="flex flex-row items-center" />
+                                </Button>
                             ) : (
                                 <Button
                                     className="w-full"

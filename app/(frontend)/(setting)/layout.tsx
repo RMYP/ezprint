@@ -7,7 +7,7 @@ export default function RootLayout({
 }>) {
   return (
     <div>
-      <Navbar props="bg-white mb-5 hidden lg:block md:block" />
+      <Navbar props="bg-white mb-5 lg:block md:block" />
       {children}
     </div>
   );

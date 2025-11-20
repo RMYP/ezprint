@@ -76,6 +76,8 @@ export async function GET(request: NextRequest) {
                 httpOnly: true,
                 path: "/",
                 maxAge: 60 * 60 * 24, // 1 day
+                secure: true,
+                sameSite: "lax",
             });
 
             return response;
