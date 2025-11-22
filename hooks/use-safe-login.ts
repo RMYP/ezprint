@@ -17,29 +17,15 @@ const initialState = {
     userName: useLogin.getState().name,
     userEmail: useLogin.getState().email,
     getToken: useLogin.getState().setToken,
-    isLoading: true,
+    isLoading: true, 
 };
+
 
 export const useSafeLogin = (): SafeLoginState => {
     const [state, setState] = useState(initialState);
-    const setToken = useLogin.getState().setToken;
     useEffect(() => {
+        
         useLogin.getState().setToken();
-
-        const initializeLogin = async () => {
-            await setToken(); 
-
-            const finalState = useLogin.getState();
-            setState({
-                isLogin: finalState.loginStatus,
-                userName: finalState.name,
-                userEmail: finalState.email,
-                getToken: finalState.setToken,
-                isLoading: false, 
-            });
-        };
-
-        initializeLogin(); 
 
         const unsubscribe = useLogin.subscribe((currentState) => {
             setState({
@@ -47,8 +33,18 @@ export const useSafeLogin = (): SafeLoginState => {
                 userName: currentState.name,
                 userEmail: currentState.email,
                 getToken: currentState.setToken,
-                isLoading: false,
+                isLoading: false, 
             });
+        });
+
+        
+        const currentState = useLogin.getState();
+        setState({
+            isLogin: currentState.loginStatus,
+            userName: currentState.name,
+            userEmail: currentState.email,
+            getToken: currentState.setToken,
+            isLoading: false, 
         });
 
         return () => unsubscribe();

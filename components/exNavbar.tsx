@@ -207,7 +207,9 @@ export default function Navbar({ props }: { props?: string }) {
                                         </DropdownMenuItem>
                                     ))}
                                     <DropdownMenuSeparator />
-                                    <LogoutButtonDekstop props="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-destructive outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full" />
+                                    <Button>
+                                        <LogoutButtonDekstop props="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-destructive outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full" />
+                                    </Button>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </>
