@@ -8,9 +8,7 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        console.log("idBe");
         const { id } = await params;
-        console.log("idBe", id);
 
         if (!id) {
             return httpResponse(422, false, "Invalid input", null);

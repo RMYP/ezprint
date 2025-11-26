@@ -6,7 +6,6 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -32,6 +31,11 @@ enum OrderProgress {
   finished
 }
 
+enum InkType {
+  blackWhite
+  colors
+}
+
 model Auth {
   id       String @unique @default(cuid())
   userId   String @unique
@@ -50,18 +54,19 @@ model User {
 
 model Order {
   id            String         @unique @default(cuid())
-  sheetCount    Int?
-  paperType     String?
+  sheetCount    Int? //jumlah halaman
+  paperType     String? //jenis kertas
   finishing     String?
-  quantity      Int?
-  printType     String?
+  quantity      Int? //rangkap
+  printType     String? //simplex atau duplex\
+  inkType       InkType? //hitam putih atau warna
   totalPrice    Int?
   status        OrderProgress?
   paymentStatus Boolean?
   documentPath  String
   documentName  String
   userId        String
-  orderDate     DateTime
+  orderDate     DateTime       @default(now())
   user          User           @relation(fields: [userId], references: [id])
   Payment       Payment[]
 }
@@ -78,4 +83,14 @@ model Payment {
   vaNumber          String
   bank              String
   transactionStatus TransactionStatus
+}
+
+model DailyPrintSummary {
+  id             String   @unique @default(cuid())
+  date           DateTime @unique @db.Date
+  totalSheets    Int      @default(0)
+  isWeekend      Int      @default(0)
+  isHoliday      Int      @default(0)
+  isPeakAcademic Int      @default(0)
+  createdAt      DateTime @default(now())
 }
