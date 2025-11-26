@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
+const AdminEmail = process.env.ADMIN_EMAIL as string;
 const JWT_SECRET = process.env.JWT_SECRET as string;
 async function verifyToken(token: string, secret: string) {
     try {
@@ -47,6 +48,14 @@ export async function middleware(request: NextRequest) {
         });
         return response;
     }
+
+    const { pathname } = request.nextUrl;
+    if (pathname.startsWith("/dashboard")) {
+        if (payload.email !== AdminEmail) {
+            return NextResponse.redirect(new URL("/", request.url));
+        }
+    }
+
     return NextResponse.next();
 }
 

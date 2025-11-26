@@ -18,6 +18,10 @@ export async function GET(request: Request) {
             return httpResponse(403, false, "Invalid Token", null);
         }
 
+        if (decodeJwt?.email !== "yurunime1@gmail.com") {
+            return httpResponse(403, false, "Unauthorized access", null);
+        }
+
         const now = new Date();
         const firstDayOfThisMonth = new Date(
             now.getFullYear(),

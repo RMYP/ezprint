@@ -3,6 +3,8 @@
 import { DataTable } from "@/components/data-table";
 import { SectionCards } from "@/components/section-cards";
 import { getDashboardData } from "../../action/action";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export default function Page() {
+    const router = useRouter();
     const [cardData, setCardData] = useState<Props>({
         totalRevenue: 0,
         finishedCount: 0,
@@ -29,7 +32,11 @@ export default function Page() {
                 const notFinishedCount = data.notFinishedCount;
                 setCardData({ totalRevenue, finishedCount, notFinishedCount });
                 setData(data.getChart);
-            } catch (err) {}
+            } catch (err: unknown) {
+                err instanceof Error && err.message == "Unauthorized access"
+                    ? router.push("/")
+                    : toast.error(err);
+            }
         };
 
         getData();
