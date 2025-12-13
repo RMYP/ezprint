@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider        = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -31,11 +31,6 @@ enum OrderProgress {
   finished
 }
 
-enum InkType {
-  blackWhite
-  colors
-}
-
 model Auth {
   id       String @unique @default(cuid())
   userId   String @unique
@@ -54,12 +49,12 @@ model User {
 
 model Order {
   id            String         @unique @default(cuid())
-  sheetCount    Int? //jumlah halaman
-  paperType     String? //jenis kertas
+  sheetCount    Int?
+  paperType     String?
   finishing     String?
-  quantity      Int? //rangkap
-  printType     String? //simplex atau duplex\
-  inkType       InkType? //hitam putih atau warna
+  quantity      Int?
+  printType     String?
+  inkType       String
   totalPrice    Int?
   status        OrderProgress?
   paymentStatus Boolean?
@@ -93,4 +88,36 @@ model DailyPrintSummary {
   isHoliday      Int      @default(0)
   isPeakAcademic Int      @default(0)
   createdAt      DateTime @default(now())
+}
+
+model PaperGsmPrice {
+  id        String   @unique @default(cuid())
+  gsm       String
+  price     Int
+  createdAt DateTime @default(now())
+  updateAt  DateTime @default(now())
+}
+
+model FinishingOption {
+  id            String   @unique @default(cuid())
+  finishingType String
+  price         Int
+  createdAt     DateTime @default(now())
+  updateAt      DateTime @default(now())
+}
+
+model PrintingType {
+  id           String   @unique @default(cuid())
+  printingType String
+  price        Int
+  createdAt    DateTime @default(now())
+  updateAt     DateTime @default(now())
+}
+
+model InkType {
+  id        String   @unique @default(cuid())
+  InkType   String
+  price     Int
+  createdAt DateTime @default(now())
+  updateAt  DateTime @default(now())
 }
