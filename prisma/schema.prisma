@@ -54,7 +54,7 @@ model Order {
   finishing     String?
   quantity      Int?
   printType     String?
-  inkType       String
+  inkType       String?
   totalPrice    Int?
   status        OrderProgress?
   paymentStatus Boolean?
@@ -91,33 +91,49 @@ model DailyPrintSummary {
 }
 
 model PaperGsmPrice {
-  id        String   @unique @default(cuid())
-  gsm       String
-  price     Int
-  createdAt DateTime @default(now())
-  updateAt  DateTime @default(now())
+  id                  String               @unique @default(cuid())
+  gsm                 String
+  price               Int
+  createdAt           DateTime             @default(now())
+  updateAt            DateTime             @default(now())
+  printSpesifications PrintSpesification[]
 }
 
 model FinishingOption {
-  id            String   @unique @default(cuid())
-  finishingType String
-  price         Int
-  createdAt     DateTime @default(now())
-  updateAt      DateTime @default(now())
+  id                  String               @unique @default(cuid())
+  finishingType       String
+  price               Int
+  createdAt           DateTime             @default(now())
+  updateAt            DateTime             @default(now())
+  printSpesifications PrintSpesification[]
 }
 
 model PrintingType {
-  id           String   @unique @default(cuid())
-  printingType String
-  price        Int
-  createdAt    DateTime @default(now())
-  updateAt     DateTime @default(now())
+  id                  String               @unique @default(cuid())
+  printingType        String
+  price               Int
+  createdAt           DateTime             @default(now())
+  updateAt            DateTime             @default(now())
+  printSpesifications PrintSpesification[]
 }
 
 model InkType {
-  id        String   @unique @default(cuid())
-  InkType   String
-  price     Int
-  createdAt DateTime @default(now())
-  updateAt  DateTime @default(now())
+  id                  String               @unique @default(cuid())
+  InkType             String
+  price               Int
+  createdAt           DateTime             @default(now())
+  updateAt            DateTime             @default(now())
+  printSpesifications PrintSpesification[]
+}
+
+model PrintSpesification {
+  id                String          @unique @default(cuid())
+  inkType           InkType         @relation(fields: [inkTypeId], references: [id])
+  printingType      PrintingType    @relation(fields: [printingTypeId], references: [id])
+  finishingOption   FinishingOption @relation(fields: [finishingOptionId], references: [id])
+  paperGsm          PaperGsmPrice   @relation(fields: [paperGsmPriceId], references: [id])
+  inkTypeId         String
+  printingTypeId    String
+  finishingOptionId String
+  paperGsmPriceId   String
 }

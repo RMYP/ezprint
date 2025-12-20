@@ -18,6 +18,7 @@ export async function POST(request: Request) {
             );
         }
 
+        console.log("sampai sini ok")
         const cookieStore = cookies();
         const tokenCookie = (await cookieStore).get("_token");
         const token = tokenCookie?.value;
@@ -32,7 +33,6 @@ export async function POST(request: Request) {
                 { status: 401 }
             );
         }
-
         const decodeJwt = await checkJwt(token);
         if (!decodeJwt?.id) {
             return Response.json(
@@ -41,7 +41,6 @@ export async function POST(request: Request) {
             );
         }
 
-        console.log(decodeJwt, "jokowi");
         const uploadDir = DocPath;
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });

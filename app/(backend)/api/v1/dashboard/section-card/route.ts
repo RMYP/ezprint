@@ -18,7 +18,7 @@ export async function GET(request: Request) {
             return httpResponse(403, false, "Invalid Token", null);
         }
 
-        if (decodeJwt?.email !== "yurunime1@gmail.com") {
+        if (decodeJwt?.email !== (process.env.ADMIN_EMAIL as String)) {
             return httpResponse(403, false, "Unauthorized access", null);
         }
 

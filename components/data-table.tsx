@@ -65,7 +65,7 @@ export function DataTable({ props }: { props: Order[] }) {
                         <TableRow key={data.id || index}>
                             <TableCell>{index + 1}</TableCell>
                             <TableCell>
-                                <Link href={`/working-room/${data.id}`}>{data.documentName}</Link>
+                                <Link href={`dashboard/working-room/${data.id}`}>{data.documentName}</Link>
                             </TableCell>
                             <TableCell>{data.status}</TableCell>
                             <TableCell>{data.paperType}</TableCell>

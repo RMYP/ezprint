@@ -3,15 +3,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { useForm, Controller, useWatch } from "react-hook-form"; // Tambahkan useWatch
+import { useForm, Controller, useWatch } from "react-hook-form";
 import Navbar from "@/components/exNavbar";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 
+// Assumed imports
 import { useSimulation } from "@/hooks/price-simulation.store";
 import { useLogin } from "@/hooks/user-store";
-
 import { createCheckout, uploadFileCheckout } from "../../action/action";
 
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ const formatPrice = (price: number | null | undefined) => {
     }).format(price);
 };
 
+// --- 1. UPDATE SCHEMA ZOD ---
 const priceSimulationSchema = z.object({
     sheetCount: z
         .number({ required_error: "Jumlah halaman wajib diisi" })
@@ -58,6 +59,10 @@ const priceSimulationSchema = z.object({
     printType: z
         .string({ required_error: "Jenis print wajib dipilih" })
         .nonempty("Jenis print wajib dipilih"),
+    // Added Ink Type
+    inkType: z
+        .string({ required_error: "Warna tinta wajib dipilih" })
+        .nonempty("Warna tinta wajib dipilih"),
     quantity: z
         .number({ required_error: "Jumlah rangkap wajib diisi" })
         .min(1, "Minimal 1 rangkap"),
@@ -87,32 +92,35 @@ export default function OrderPageRedesign() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [isLoading, setIsLoading] = useState(false);
-    // State baru untuk indikator sedang menunggu kalkulasi debounce
     const [isCalculating, setIsCalculating] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedAddress, setSelectedAddress] = useState<MockAddress>(
         mockUserAddresses[0]
     );
-    // isCalculatedPrice tetap dipakai untuk memastikan harga valid sebelum checkout
     const [isCalculatedPrice, setIsCalculatedPrice] = useState(false);
 
     const token = useLogin((state) => state.token);
+
+    // --- 2. UPDATE DESTRUCTURING FROM STORE ---
+    // Ensure your useSimulation store returns 'inkType' list (aliased as inkTypeOptions here)
     const {
         paperType,
         finishingOption,
         printingType,
+        inkType: inkTypeOptions, // Rename to avoid conflict with form field 'inkType'
         setCheckout,
         checkoutPrice,
     } = useSimulation();
 
     const form = useForm<PriceSimulationForm>({
         resolver: zodResolver(priceSimulationSchema),
-        mode: "onChange", // Agar validasi berjalan real-time
+        mode: "onChange",
         defaultValues: {
             sheetCount: undefined,
             paperType: "",
             finishing: "Tanpa Jilid",
             printType: "Cetak Satu Sisi (simplex)",
+            inkType: "", // Initialize inkType
             quantity: 1,
         },
     });
@@ -121,12 +129,14 @@ export default function OrderPageRedesign() {
         control: form.control,
     });
 
+    // --- 3. UPDATE CALCULATION EFFECT ---
     useEffect(() => {
         const {
             sheetCount,
             paperType: selectedPaperType,
             finishing,
             quantity,
+            inkType: selectedInkType, // Get inkType value
         } = form.getValues();
 
         const isFormValid =
@@ -134,6 +144,7 @@ export default function OrderPageRedesign() {
             sheetCount > 0 &&
             selectedPaperType &&
             finishing &&
+            selectedInkType && // Validate inkType
             quantity &&
             quantity > 0;
 
@@ -143,30 +154,42 @@ export default function OrderPageRedesign() {
             return;
         }
 
-        // Mulai loading kalkulasi (menunggu debounce)
         setIsCalculating(true);
-        // Set false dulu agar user tidak bisa checkout selama menunggu
         setIsCalculatedPrice(false);
 
-        // Setup Timer Debounce (1 detik = 1000ms)
         const debounceTimer = setTimeout(() => {
             const paper = paperType.find((p) => p.type === selectedPaperType);
             const finish = finishingOption.find((f) => f.type === finishing);
+            // Find the selected ink object to get its price
+            const ink = inkTypeOptions?.find((i) => i.type === selectedInkType);
 
-            if (paper && finish) {
-                // Lakukan kalkulasi
-                setCheckout(sheetCount, paper.price, finish.price, quantity);
+            if (paper && finish && ink) {
+                // IMPORTANT: You need to update setCheckout signature in your store
+                // to accept ink price or print type price if needed.
+                // Assuming: setCheckout(sheet, paperPrice, finishPrice, qty, inkPrice)
+                setCheckout(
+                    sheetCount,
+                    paper.price,
+                    finish.price,
+                    quantity,
+                    ink.price
+                );
                 setIsCalculatedPrice(true);
             }
-            // Selesai kalkulasi
             setIsCalculating(false);
         }, 1000);
 
-        // Cleanup function: akan dijalankan jika watchedValues berubah sebelum 1 detik
         return () => {
             clearTimeout(debounceTimer);
         };
-    }, [watchedValues, paperType, finishingOption, setCheckout, form]);
+    }, [
+        watchedValues,
+        paperType,
+        finishingOption,
+        inkTypeOptions, // Add dependency
+        setCheckout,
+        form,
+    ]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -185,7 +208,6 @@ export default function OrderPageRedesign() {
             return;
         }
 
-        // Double check safety, meskipun tombol sudah didisable
         if (!isCalculatedPrice || isCalculating) {
             toast.error("Mohon tunggu perhitungan harga selesai.");
             return;
@@ -204,9 +226,10 @@ export default function OrderPageRedesign() {
             toast.loading("Membuat pesanan...", { id: orderToast });
             const checkoutData = {
                 fieldId: newOrderId,
-                ...data,
+                ...data, // This now includes inkType
                 totalPrice: checkoutPrice,
             };
+
             const { id: orderId } = await createCheckout(
                 checkoutData,
                 token as string
@@ -408,6 +431,57 @@ export default function OrderPageRedesign() {
                                         )}
                                     </div>
 
+                                    {/* --- NEW FIELD: INK TYPE (Warna Tinta) --- */}
+                                    <div>
+                                        <Label>Warna Tinta</Label>
+                                        <Controller
+                                            control={form.control}
+                                            name="inkType"
+                                            render={({ field }) => (
+                                                <Select
+                                                    onValueChange={
+                                                        field.onChange
+                                                    }
+                                                    value={field.value}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Pilih warna tinta" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {inkTypeOptions?.map(
+                                                            (item) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        item.type
+                                                                    }
+                                                                    value={
+                                                                        item.type
+                                                                    }
+                                                                >
+                                                                    {item.type}{" "}
+                                                                    {item.price >
+                                                                    0
+                                                                        ? `(+${formatPrice(
+                                                                              item.price
+                                                                          )})`
+                                                                        : ""}
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                        {form.formState.errors.inkType && (
+                                            <p className="text-destructive text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .inkType.message
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
+
                                     {/* Print Type */}
                                     <div>
                                         <Label>Tipe Cetak</Label>
@@ -443,10 +517,20 @@ export default function OrderPageRedesign() {
                                                 </Select>
                                             )}
                                         />
+                                        {form.formState.errors.printType && (
+                                            <p className="text-destructive text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .printType.message
+                                                }
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Finishing */}
-                                    <div className="md:col-span-2">
+                                    {/* Changed colspan to 1 or 2 depending on your layout preference. 
+                      Since we added inkType, the grid is even now. */}
+                                    <div>
                                         <Label>Finishing</Label>
                                         <Controller
                                             control={form.control}
@@ -486,6 +570,14 @@ export default function OrderPageRedesign() {
                                                 </Select>
                                             )}
                                         />
+                                        {form.formState.errors.finishing && (
+                                            <p className="text-destructive text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .finishing.message
+                                                }
+                                            </p>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -583,6 +675,15 @@ export default function OrderPageRedesign() {
                                             {form.watch("paperType") || "-"}
                                         </span>
                                     </div>
+                                    {/* Summary for Ink Type */}
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
+                                            Tinta
+                                        </span>
+                                        <span className="text-right">
+                                            {form.watch("inkType") || "-"}
+                                        </span>
+                                    </div>
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">
                                             Finishing
@@ -592,14 +693,13 @@ export default function OrderPageRedesign() {
                                         </span>
                                     </div>
                                 </div>
-                                {checkoutPrice &&
-                                    (checkoutPrice < 50000 ? (
-                                        <Alert> 
-                                            <AlertTitle className="flex items-center justify-center">{`Pesanan < Rp50.000 kena admin Rp1.000`}</AlertTitle>
-                                        </Alert>
-                                    ) : (
-                                        <div></div>
-                                    ))}
+                                {checkoutPrice && checkoutPrice < 50000 ? (
+                                    <Alert>
+                                        <AlertTitle className="flex items-center justify-center">{`Pesanan < Rp50.000 kena admin Rp1.000`}</AlertTitle>
+                                    </Alert>
+                                ) : (
+                                    <div></div>
+                                )}
                                 <Separator className="my-4" />
 
                                 <div className="flex justify-between items-center">

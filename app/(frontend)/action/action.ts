@@ -357,3 +357,60 @@ export const getOrderWorkingRoom = async (id: string) => {
         throw new Error(error);
     }
 };
+
+// spesification
+
+export interface SpecificationData {
+  inkType: Array<{ id: string; InkType: string; price: number }>;
+  printingType: Array<{ id: string; printingType: string; price: number }>;
+  finishingOption: Array<{ id: string; finishingType: string; price: number }>;
+  paperGsm: Array<{ id: string; gsm: string; price: number }>;
+}
+
+type SpecCategory = "finishing-option" | "inkType" | "paper-gsm" | "printing-type";
+
+export const getSpecifications = async (): Promise<SpecificationData> => {
+  try {
+    const response = await axios.get(
+      "/api/v1/dashboard/specifications/get-specification",
+      { withCredentials: true }
+    );
+
+    if (response.data.status !== 200) {
+      throw new Error(response.data.message || "Gagal mengambil data");
+    }
+
+    return response.data.data;
+  } catch (err: unknown) {
+    const error = axiosErrorHandler(err);
+    throw new Error(error);
+  }
+};
+
+export const saveSpecification = async (
+  category: SpecCategory,
+  actionType: "create" | "update",
+  payload: any
+) => {
+  try {
+    const method = actionType === "create" ? "post" : "patch";
+        const url = `/api/v1/dashboard/specifications/${actionType}/${category}`;
+
+        console.log(payload)
+    const response = await axios({
+      method: method,
+      url: url,
+      data: payload,
+      withCredentials: true,
+    });
+
+    if (response.data.status !== 200 && response.data.status !== 201) {
+      throw new Error(response.data.message || "Gagal menyimpan data");
+    }
+
+    return response.data;
+  } catch (err: unknown) {
+    const error = axiosErrorHandler(err);
+    throw new Error(error);
+  }
+};
