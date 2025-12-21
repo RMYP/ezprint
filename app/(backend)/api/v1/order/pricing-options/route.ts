@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import httpResponse from "@/lib/httpError";
 import { NextResponse } from "next/server";
 
-export async function GET(response: NextResponse) {
+export async function GET() {
   try {
     const [paperTypes, finishingOptions, printingTypes, inkTypes] =
       await Promise.all([
