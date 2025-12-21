@@ -27,6 +27,7 @@ enum OrderProgress {
   waitingPayment
   confirmOrder
   onProgress
+  readyToPickUp
   deny
   finished
 }
