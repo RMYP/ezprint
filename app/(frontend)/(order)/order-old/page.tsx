@@ -77,12 +77,12 @@ export default function Page() {
     );
 
     if (selectedPaper && selectedFinishing) {
-      setPrice(
-        data.sheetCount,
-        selectedPaper.price,
-        selectedFinishing.price,
-        data.quantity
-      );
+      // setPrice(
+      //   data.sheetCount,
+      //   selectedPaper.price,
+      //   selectedFinishing.price,
+      //   data.quantity
+      // );
     }
 
     try {

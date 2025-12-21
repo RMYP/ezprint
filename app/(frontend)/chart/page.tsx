@@ -177,11 +177,14 @@ export default function Page() {
         getChartList();
     }, [router]);
 
-    // Filter dari file asli Anda: hanya tampilkan item yang belum lunas
     const visibleItems = chartList
-        ? chartList.filter((item) => !item.paymentStatus)
+        ? chartList.filter((item) => 
+            !item.paymentStatus && 
+            item.status !== "finished" && 
+            item.status !== "onProgress" &&
+            item.status !== "deny"
+          )
         : [];
-
     // Komponen untuk tombol aksi dinamis
     const GetActionButtons = ({ item }: { item: ChartList }) => {
         const payment = item.Payment?.[0];

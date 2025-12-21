@@ -3,16 +3,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { useForm, Controller, useWatch } from "react-hook-form"; // Tambahkan useWatch
+import { useForm, Controller, useWatch } from "react-hook-form";
 import Navbar from "@/components/exNavbar";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 
+// Assumed imports
 import { useSimulation } from "@/hooks/price-simulation.store";
 import { useLogin } from "@/hooks/user-store";
-
 import { createCheckout, uploadFileCheckout } from "../../action/action";
+
+// Pastikan Anda sudah menginstall/membuat komponen Textarea
+import { Textarea } from "@/components/ui/textarea";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +36,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
-import { Loader2, FileText, UploadCloud, X, Home, Store } from "lucide-react";
+import {
+    Loader2,
+    FileText,
+    UploadCloud,
+    X,
+    Home,
+    Store,
+    MessageSquare,
+} from "lucide-react";
 
 // Helper format price
 const formatPrice = (price: number | null | undefined) => {
@@ -45,6 +56,7 @@ const formatPrice = (price: number | null | undefined) => {
     }).format(price);
 };
 
+// --- 1. Schema Zod (Termasuk Notes) ---
 const priceSimulationSchema = z.object({
     sheetCount: z
         .number({ required_error: "Jumlah halaman wajib diisi" })
@@ -58,9 +70,13 @@ const priceSimulationSchema = z.object({
     printType: z
         .string({ required_error: "Jenis print wajib dipilih" })
         .nonempty("Jenis print wajib dipilih"),
+    inkType: z
+        .string({ required_error: "Warna tinta wajib dipilih" })
+        .nonempty("Warna tinta wajib dipilih"),
     quantity: z
         .number({ required_error: "Jumlah rangkap wajib diisi" })
         .min(1, "Minimal 1 rangkap"),
+    notes: z.string().max(300, "Maksimal 300 Karakter").optional(),
 });
 type PriceSimulationForm = z.infer<typeof priceSimulationSchema>;
 
@@ -87,33 +103,40 @@ export default function OrderPageRedesign() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [isLoading, setIsLoading] = useState(false);
-    // State baru untuk indikator sedang menunggu kalkulasi debounce
     const [isCalculating, setIsCalculating] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedAddress, setSelectedAddress] = useState<MockAddress>(
         mockUserAddresses[0]
     );
-    // isCalculatedPrice tetap dipakai untuk memastikan harga valid sebelum checkout
     const [isCalculatedPrice, setIsCalculatedPrice] = useState(false);
 
     const token = useLogin((state) => state.token);
+
     const {
         paperType,
         finishingOption,
         printingType,
+        inkType: inkTypeOptions,
         setCheckout,
         checkoutPrice,
+        fetchPricingData,
     } = useSimulation();
+
+    useEffect(() => {
+        fetchPricingData();
+    }, [fetchPricingData]);
 
     const form = useForm<PriceSimulationForm>({
         resolver: zodResolver(priceSimulationSchema),
-        mode: "onChange", // Agar validasi berjalan real-time
+        mode: "onChange",
         defaultValues: {
             sheetCount: undefined,
             paperType: "",
             finishing: "Tanpa Jilid",
             printType: "Cetak Satu Sisi (simplex)",
+            inkType: "",
             quantity: 1,
+            notes: "",
         },
     });
 
@@ -127,6 +150,7 @@ export default function OrderPageRedesign() {
             paperType: selectedPaperType,
             finishing,
             quantity,
+            inkType: selectedInkType,
         } = form.getValues();
 
         const isFormValid =
@@ -134,6 +158,7 @@ export default function OrderPageRedesign() {
             sheetCount > 0 &&
             selectedPaperType &&
             finishing &&
+            selectedInkType &&
             quantity &&
             quantity > 0;
 
@@ -143,30 +168,38 @@ export default function OrderPageRedesign() {
             return;
         }
 
-        // Mulai loading kalkulasi (menunggu debounce)
         setIsCalculating(true);
-        // Set false dulu agar user tidak bisa checkout selama menunggu
         setIsCalculatedPrice(false);
 
-        // Setup Timer Debounce (1 detik = 1000ms)
         const debounceTimer = setTimeout(() => {
             const paper = paperType.find((p) => p.type === selectedPaperType);
             const finish = finishingOption.find((f) => f.type === finishing);
+            const ink = inkTypeOptions?.find((i) => i.type === selectedInkType);
 
-            if (paper && finish) {
-                // Lakukan kalkulasi
-                setCheckout(sheetCount, paper.price, finish.price, quantity);
+            if (paper && finish && ink) {
+                setCheckout(
+                    sheetCount,
+                    paper.price,
+                    finish.price,
+                    quantity,
+                    ink.price
+                );
                 setIsCalculatedPrice(true);
             }
-            // Selesai kalkulasi
             setIsCalculating(false);
         }, 1000);
 
-        // Cleanup function: akan dijalankan jika watchedValues berubah sebelum 1 detik
         return () => {
             clearTimeout(debounceTimer);
         };
-    }, [watchedValues, paperType, finishingOption, setCheckout, form]);
+    }, [
+        watchedValues,
+        paperType,
+        finishingOption,
+        inkTypeOptions,
+        setCheckout,
+        form,
+    ]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -185,7 +218,6 @@ export default function OrderPageRedesign() {
             return;
         }
 
-        // Double check safety, meskipun tombol sudah didisable
         if (!isCalculatedPrice || isCalculating) {
             toast.error("Mohon tunggu perhitungan harga selesai.");
             return;
@@ -207,6 +239,7 @@ export default function OrderPageRedesign() {
                 ...data,
                 totalPrice: checkoutPrice,
             };
+
             const { id: orderId } = await createCheckout(
                 checkoutData,
                 token as string
@@ -408,6 +441,57 @@ export default function OrderPageRedesign() {
                                         )}
                                     </div>
 
+                                    {/* Ink Type */}
+                                    <div>
+                                        <Label>Warna Tinta</Label>
+                                        <Controller
+                                            control={form.control}
+                                            name="inkType"
+                                            render={({ field }) => (
+                                                <Select
+                                                    onValueChange={
+                                                        field.onChange
+                                                    }
+                                                    value={field.value}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Pilih warna tinta" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {inkTypeOptions?.map(
+                                                            (item) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        item.type
+                                                                    }
+                                                                    value={
+                                                                        item.type
+                                                                    }
+                                                                >
+                                                                    {item.type}{" "}
+                                                                    {item.price >
+                                                                    0
+                                                                        ? `(+${formatPrice(
+                                                                              item.price
+                                                                          )})`
+                                                                        : ""}
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                        {form.formState.errors.inkType && (
+                                            <p className="text-destructive text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .inkType.message
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
+
                                     {/* Print Type */}
                                     <div>
                                         <Label>Tipe Cetak</Label>
@@ -443,10 +527,18 @@ export default function OrderPageRedesign() {
                                                 </Select>
                                             )}
                                         />
+                                        {form.formState.errors.printType && (
+                                            <p className="text-destructive text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .printType.message
+                                                }
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Finishing */}
-                                    <div className="md:col-span-2">
+                                    <div>
                                         <Label>Finishing</Label>
                                         <Controller
                                             control={form.control}
@@ -486,6 +578,46 @@ export default function OrderPageRedesign() {
                                                 </Select>
                                             )}
                                         />
+                                        {form.formState.errors.finishing && (
+                                            <p className="text-destructive text-sm mt-1">
+                                                {
+                                                    form.formState.errors
+                                                        .finishing.message
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* --- 2.5. KARTU BARU: CATATAN (NOTES) --- */}
+                            <Card className="mt-6">
+                                <CardHeader>
+                                    <div className="flex items-center gap-2">
+                                        <MessageSquare className="h-5 w-5 text-primary" />
+                                        <CardTitle>Catatan Tambahan</CardTitle>
+                                    </div>
+                                    <CardDescription>
+                                        Berikan instruksi khusus untuk operator
+                                        percetakan (Opsional).
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid w-full gap-2">
+                                        <Label htmlFor="notes">
+                                            Pesan / Catatan
+                                        </Label>
+                                        <Textarea
+                                            id="notes"
+                                            placeholder="Contoh: Tolong jilid warna biru..."
+                                            className="resize-none min-h-[100px]"
+                                            maxLength={200}
+                                            {...form.register("notes")}
+                                        />
+                                        <div className="text-xs text-muted-foreground text-right mt-1">
+                                            {form.watch("notes")?.length || 0} /
+                                            200 karakter
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -585,21 +717,41 @@ export default function OrderPageRedesign() {
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">
+                                            Tinta
+                                        </span>
+                                        <span className="text-right">
+                                            {form.watch("inkType") || "-"}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">
                                             Finishing
                                         </span>
                                         <span className="text-right">
                                             {form.watch("finishing") || "-"}
                                         </span>
                                     </div>
+                                    {/* Menampilkan Catatan di Ringkasan (Optional) */}
+                                    {form.watch("notes") && (
+                                        <div className="flex flex-col gap-1 mt-2 p-2 bg-muted/50 rounded-md border border-muted">
+                                            <span className="text-xs font-semibold text-muted-foreground">
+                                                Catatan:
+                                            </span>
+                                            <span className="text-xs italic break-words">
+                                                "{form.watch("notes")}"
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
-                                {checkoutPrice &&
-                                    (checkoutPrice < 50000 ? (
-                                        <Alert> 
-                                            <AlertTitle className="flex items-center justify-center">{`Pesanan < Rp50.000 kena admin Rp1.000`}</AlertTitle>
-                                        </Alert>
-                                    ) : (
-                                        <div></div>
-                                    ))}
+                                {checkoutPrice && checkoutPrice < 50000 ? (
+                                    <Alert>
+                                        <AlertTitle className="flex items-center justify-center text-xs">
+                                            {`Pesanan < Rp50.000 kena admin Rp1.000`}
+                                        </AlertTitle>
+                                    </Alert>
+                                ) : (
+                                    <div></div>
+                                )}
                                 <Separator className="my-4" />
 
                                 <div className="flex justify-between items-center">

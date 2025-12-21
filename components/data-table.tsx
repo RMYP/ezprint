@@ -65,7 +65,7 @@ export function DataTable({ props }: { props: Order[] }) {
                         <TableRow key={data.id || index}>
                             <TableCell>{index + 1}</TableCell>
                             <TableCell>
-                                <Link href={`/working-room/${data.id}`}>{data.documentName}</Link>
+                                <Link href={`dashboard/working-room/${data.id}`}>{data.documentName}</Link>
                             </TableCell>
                             <TableCell>{data.status}</TableCell>
                             <TableCell>{data.paperType}</TableCell>
@@ -75,7 +75,9 @@ export function DataTable({ props }: { props: Order[] }) {
                                 {data.user?.username || "Unknown"}
                             </TableCell>
                             <TableCell className="text-right">
-                                <Button>
+                                <Button onClick={() => {
+                                    window.open(`/api/v1/dashboard/download/file/${data.id}`, '_blank')
+                                }}>
                                     <FileDown />
                                 </Button>
                             </TableCell>
