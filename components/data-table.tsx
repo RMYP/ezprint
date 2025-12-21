@@ -75,7 +75,9 @@ export function DataTable({ props }: { props: Order[] }) {
                                 {data.user?.username || "Unknown"}
                             </TableCell>
                             <TableCell className="text-right">
-                                <Button>
+                                <Button onClick={() => {
+                                    window.open(`/api/v1/dashboard/download/file/${data.id}`, '_blank')
+                                }}>
                                     <FileDown />
                                 </Button>
                             </TableCell>

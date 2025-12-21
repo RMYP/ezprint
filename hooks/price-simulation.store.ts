@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import axios from "axios";
 
 interface Detail {
     type: string;
@@ -7,12 +9,18 @@ interface Detail {
 
 interface PriceSimulation {
     sheet: number | undefined;
+
     paperType: Detail[];
     finishingOption: Detail[];
     printingType: Detail[];
     inkType: Detail[];
+
+    isLoading: boolean;
     price: number | undefined;
     checkoutPrice: number | undefined;
+    lastFetched: number; 
+
+    fetchPricingData: () => Promise<void>;
     setPrice: (
         sheet: number,
         paperPrice: number,
@@ -23,35 +31,105 @@ interface PriceSimulation {
         sheet: number,
         paperPrice: number,
         finishingPrice: number,
-        quantity: number
+        quantity: number,
+        inkPrice: number
     ) => void;
 }
-export const useSimulation = create<PriceSimulation>((set) => ({
-    sheet: undefined,
-    paperType: [
-        { type: "75gsm", price: 100 },
-        { type: "80gsm", price: 150 },
-    ],
-    finishingOption: [
-        { type: "Tanpa Jilid", price: 0 },
-        { type: "Jilid Soft Cover", price: 6000 },
-        { type: "Staples", price: 0 },
-        { type: "Binder Clip", price: 3000 },
-    ],
-    printingType: [
-        { type: "Cetak Satu Sisi (simplex)", price: 0 },
-        { type: "Cetak Dua Sisi (duplex)", price: 0 },
-    ],
-    inkType: [{ type: "Hitam Putih", price: 200 }, { type: "Warna", price: 350 }],
-    price: undefined,
-    checkoutPrice: undefined,
-    setPrice: (sheet, paperPrice, finishingPrice) => {
-        const total = sheet * paperPrice + finishingPrice;
-        set(() => ({ price: total }));
-    },
-    setCheckout: (sheet, papperPrice, finishingPrice, quantity) => {
-        const price = sheet * papperPrice + finishingPrice;
-        const totalPrice = price * quantity;
-        set(() => ({ checkoutPrice: totalPrice }));
-    },
-}));
+
+export const useSimulation = create<PriceSimulation>()(
+    persist(
+        (set, get) => ({
+            sheet: undefined,
+            paperType: [],
+            finishingOption: [],
+            printingType: [],
+            inkType: [],
+
+            isLoading: false,
+            price: undefined,
+            checkoutPrice: undefined,
+            lastFetched: 0, 
+
+            fetchPricingData: async () => {
+                const now = Date.now();
+                const ONE_HOUR = 60 * 60 * 1000; 
+
+                if (
+                    get().paperType.length > 0 &&
+                    now - get().lastFetched < ONE_HOUR
+                ) {
+                    return;
+                }
+
+                set({ isLoading: true });
+                try {
+                    const response = await axios.get("/api/v1/order/pricing-options");
+
+                    if (response.data.status === 200) {
+                        const {
+                            paperGsm,
+                            finishingOption,
+                            printingType,
+                            inkType,
+                        } = response.data.data;
+
+                        set({
+                            paperType: paperGsm.map((item: any) => ({
+                                type: item.gsm,
+                                price: item.price,
+                            })),
+                            finishingOption: finishingOption.map(
+                                (item: any) => ({
+                                    type: item.finishingType,
+                                    price: item.price,
+                                })
+                            ),
+                            printingType: printingType.map((item: any) => ({
+                                type: item.printingType,
+                                price: item.price,
+                            })),
+                            inkType: inkType.map((item: any) => ({
+                                type: item.InkType,
+                                price: item.price,
+                            })),
+                            lastFetched: now, 
+                        });
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch pricing options:", error);
+                } finally {
+                    set({ isLoading: false });
+                }
+            },
+
+            setPrice: (sheet, paperPrice, inkPrice, finishingPrice) => {
+                const total = sheet * (paperPrice + inkPrice) + finishingPrice;
+                set(() => ({ price: total }));
+            },
+
+            setCheckout: (
+                sheet,
+                paperPrice,
+                finishingPrice,
+                quantity,
+                inkPrice
+            ) => {
+                const pricePerSet =
+                    sheet * (paperPrice + inkPrice) + finishingPrice;
+                const totalPrice = pricePerSet * quantity;
+                set(() => ({ checkoutPrice: totalPrice }));
+            },
+        }),
+        {
+            name: "price-simulation-storage", 
+            storage: createJSONStorage(() => sessionStorage),
+            partialize: (state) => ({
+                paperType: state.paperType,
+                finishingOption: state.finishingOption,
+                printingType: state.printingType,
+                inkType: state.inkType,
+                lastFetched: state.lastFetched,
+            }),
+        }
+    )
+);

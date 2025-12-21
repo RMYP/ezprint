@@ -15,6 +15,7 @@ interface createOrder {
     printType: string;
     totalPrice: number | undefined;
     fieldId: string;
+    notes?: string;
 }
 
 export const tryLogin = async (data: Login) => {
@@ -95,7 +96,7 @@ export const uploadFileCheckout = async (data: File, token: string) => {
         });
 
         if (response.status !== 201) {
-            console.log(response)
+            console.log(response);
             throw new Error(response.data.message || "Upload failed");
         }
 
@@ -336,7 +337,7 @@ export const getDashboardData = async () => {
 
 export const getOrderWorkingRoom = async (id: string) => {
     try {
-        console.log("id", id)
+        console.log("id", id);
         const response = await axios.get(
             `/api/v1/dashboard/section-working-room/${id}`,
             {
@@ -344,7 +345,7 @@ export const getOrderWorkingRoom = async (id: string) => {
             }
         );
 
-        console.log("resp", response)
+        console.log("resp", response);
 
         if (response.data.status !== 200) {
             console.log(response.data);
@@ -361,56 +362,92 @@ export const getOrderWorkingRoom = async (id: string) => {
 // spesification
 
 export interface SpecificationData {
-  inkType: Array<{ id: string; InkType: string; price: number }>;
-  printingType: Array<{ id: string; printingType: string; price: number }>;
-  finishingOption: Array<{ id: string; finishingType: string; price: number }>;
-  paperGsm: Array<{ id: string; gsm: string; price: number }>;
+    inkType: Array<{ id: string; InkType: string; price: number }>;
+    printingType: Array<{ id: string; printingType: string; price: number }>;
+    finishingOption: Array<{
+        id: string;
+        finishingType: string;
+        price: number;
+    }>;
+    paperGsm: Array<{ id: string; gsm: string; price: number }>;
 }
 
-type SpecCategory = "finishing-option" | "inkType" | "paper-gsm" | "printing-type";
+type SpecCategory =
+    | "finishing-option"
+    | "inkType"
+    | "paper-gsm"
+    | "printing-type";
 
 export const getSpecifications = async (): Promise<SpecificationData> => {
-  try {
-    const response = await axios.get(
-      "/api/v1/dashboard/specifications/get-specification",
-      { withCredentials: true }
-    );
+    try {
+        const response = await axios.get(
+            "/api/v1/dashboard/specifications/get-specification",
+            { withCredentials: true }
+        );
 
-    if (response.data.status !== 200) {
-      throw new Error(response.data.message || "Gagal mengambil data");
+        if (response.data.status !== 200) {
+            throw new Error(response.data.message || "Gagal mengambil data");
+        }
+
+        return response.data.data;
+    } catch (err: unknown) {
+        const error = axiosErrorHandler(err);
+        throw new Error(error);
     }
-
-    return response.data.data;
-  } catch (err: unknown) {
-    const error = axiosErrorHandler(err);
-    throw new Error(error);
-  }
 };
 
 export const saveSpecification = async (
-  category: SpecCategory,
-  actionType: "create" | "update",
-  payload: any
+    category: SpecCategory,
+    actionType: "create" | "update",
+    payload: any
 ) => {
-  try {
-    const method = actionType === "create" ? "post" : "patch";
+    try {
+        const method = actionType === "create" ? "post" : "patch";
         const url = `/api/v1/dashboard/specifications/${actionType}/${category}`;
 
-        console.log(payload)
-    const response = await axios({
-      method: method,
-      url: url,
-      data: payload,
-      withCredentials: true,
-    });
+        console.log(payload);
+        const response = await axios({
+            method: method,
+            url: url,
+            data: payload,
+            withCredentials: true,
+        });
 
-    if (response.data.status !== 200 && response.data.status !== 201) {
-      throw new Error(response.data.message || "Gagal menyimpan data");
+        if (response.data.status !== 200 && response.data.status !== 201) {
+            throw new Error(response.data.message || "Gagal menyimpan data");
+        }
+
+        return response.data;
+    } catch (err: unknown) {
+        const error = axiosErrorHandler(err);
+        throw new Error(error);
     }
+};
 
-    return response.data;
-  } catch (err: unknown) {
-    const error = axiosErrorHandler(err);
-    throw new Error(error);
-  }
+// update status
+
+interface UpdateOrderStatus {
+    id: string;
+    status: string;
+}
+
+export const updateOrderStatus = async (data: UpdateOrderStatus) => {
+    try {
+        const url = `/api/v1/dashboard/update/order`;
+        const response = await axios({
+            method: "PATCH",
+            url: url,
+            data: data,
+            withCredentials: true,
+        });
+
+        if (response.data.status !== 200 && response.data.status !== 201) {
+            throw new Error(response.data.message || "Gagal menyimpan data");
+        }
+
+        return response.data;
+    } catch (err: unknown) {
+        const error = axiosErrorHandler(err);
+        throw new Error(error);
+    }
 };

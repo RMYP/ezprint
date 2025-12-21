@@ -14,6 +14,9 @@ import { useSimulation } from "@/hooks/price-simulation.store";
 import { useLogin } from "@/hooks/user-store";
 import { createCheckout, uploadFileCheckout } from "../../action/action";
 
+// Pastikan Anda sudah menginstall/membuat komponen Textarea
+import { Textarea } from "@/components/ui/textarea";
+
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -33,7 +36,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
-import { Loader2, FileText, UploadCloud, X, Home, Store } from "lucide-react";
+import {
+    Loader2,
+    FileText,
+    UploadCloud,
+    X,
+    Home,
+    Store,
+    MessageSquare,
+} from "lucide-react";
 
 // Helper format price
 const formatPrice = (price: number | null | undefined) => {
@@ -45,7 +56,7 @@ const formatPrice = (price: number | null | undefined) => {
     }).format(price);
 };
 
-// --- 1. UPDATE SCHEMA ZOD ---
+// --- 1. Schema Zod (Termasuk Notes) ---
 const priceSimulationSchema = z.object({
     sheetCount: z
         .number({ required_error: "Jumlah halaman wajib diisi" })
@@ -59,13 +70,13 @@ const priceSimulationSchema = z.object({
     printType: z
         .string({ required_error: "Jenis print wajib dipilih" })
         .nonempty("Jenis print wajib dipilih"),
-    // Added Ink Type
     inkType: z
         .string({ required_error: "Warna tinta wajib dipilih" })
         .nonempty("Warna tinta wajib dipilih"),
     quantity: z
         .number({ required_error: "Jumlah rangkap wajib diisi" })
         .min(1, "Minimal 1 rangkap"),
+    notes: z.string().max(300, "Maksimal 300 Karakter").optional(),
 });
 type PriceSimulationForm = z.infer<typeof priceSimulationSchema>;
 
@@ -101,16 +112,19 @@ export default function OrderPageRedesign() {
 
     const token = useLogin((state) => state.token);
 
-    // --- 2. UPDATE DESTRUCTURING FROM STORE ---
-    // Ensure your useSimulation store returns 'inkType' list (aliased as inkTypeOptions here)
     const {
         paperType,
         finishingOption,
         printingType,
-        inkType: inkTypeOptions, // Rename to avoid conflict with form field 'inkType'
+        inkType: inkTypeOptions,
         setCheckout,
         checkoutPrice,
+        fetchPricingData,
     } = useSimulation();
+
+    useEffect(() => {
+        fetchPricingData();
+    }, [fetchPricingData]);
 
     const form = useForm<PriceSimulationForm>({
         resolver: zodResolver(priceSimulationSchema),
@@ -120,8 +134,9 @@ export default function OrderPageRedesign() {
             paperType: "",
             finishing: "Tanpa Jilid",
             printType: "Cetak Satu Sisi (simplex)",
-            inkType: "", // Initialize inkType
+            inkType: "",
             quantity: 1,
+            notes: "",
         },
     });
 
@@ -129,14 +144,13 @@ export default function OrderPageRedesign() {
         control: form.control,
     });
 
-    // --- 3. UPDATE CALCULATION EFFECT ---
     useEffect(() => {
         const {
             sheetCount,
             paperType: selectedPaperType,
             finishing,
             quantity,
-            inkType: selectedInkType, // Get inkType value
+            inkType: selectedInkType,
         } = form.getValues();
 
         const isFormValid =
@@ -144,7 +158,7 @@ export default function OrderPageRedesign() {
             sheetCount > 0 &&
             selectedPaperType &&
             finishing &&
-            selectedInkType && // Validate inkType
+            selectedInkType &&
             quantity &&
             quantity > 0;
 
@@ -160,13 +174,9 @@ export default function OrderPageRedesign() {
         const debounceTimer = setTimeout(() => {
             const paper = paperType.find((p) => p.type === selectedPaperType);
             const finish = finishingOption.find((f) => f.type === finishing);
-            // Find the selected ink object to get its price
             const ink = inkTypeOptions?.find((i) => i.type === selectedInkType);
 
             if (paper && finish && ink) {
-                // IMPORTANT: You need to update setCheckout signature in your store
-                // to accept ink price or print type price if needed.
-                // Assuming: setCheckout(sheet, paperPrice, finishPrice, qty, inkPrice)
                 setCheckout(
                     sheetCount,
                     paper.price,
@@ -186,7 +196,7 @@ export default function OrderPageRedesign() {
         watchedValues,
         paperType,
         finishingOption,
-        inkTypeOptions, // Add dependency
+        inkTypeOptions,
         setCheckout,
         form,
     ]);
@@ -226,7 +236,7 @@ export default function OrderPageRedesign() {
             toast.loading("Membuat pesanan...", { id: orderToast });
             const checkoutData = {
                 fieldId: newOrderId,
-                ...data, // This now includes inkType
+                ...data,
                 totalPrice: checkoutPrice,
             };
 
@@ -431,7 +441,7 @@ export default function OrderPageRedesign() {
                                         )}
                                     </div>
 
-                                    {/* --- NEW FIELD: INK TYPE (Warna Tinta) --- */}
+                                    {/* Ink Type */}
                                     <div>
                                         <Label>Warna Tinta</Label>
                                         <Controller
@@ -528,8 +538,6 @@ export default function OrderPageRedesign() {
                                     </div>
 
                                     {/* Finishing */}
-                                    {/* Changed colspan to 1 or 2 depending on your layout preference. 
-                      Since we added inkType, the grid is even now. */}
                                     <div>
                                         <Label>Finishing</Label>
                                         <Controller
@@ -578,6 +586,38 @@ export default function OrderPageRedesign() {
                                                 }
                                             </p>
                                         )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* --- 2.5. KARTU BARU: CATATAN (NOTES) --- */}
+                            <Card className="mt-6">
+                                <CardHeader>
+                                    <div className="flex items-center gap-2">
+                                        <MessageSquare className="h-5 w-5 text-primary" />
+                                        <CardTitle>Catatan Tambahan</CardTitle>
+                                    </div>
+                                    <CardDescription>
+                                        Berikan instruksi khusus untuk operator
+                                        percetakan (Opsional).
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid w-full gap-2">
+                                        <Label htmlFor="notes">
+                                            Pesan / Catatan
+                                        </Label>
+                                        <Textarea
+                                            id="notes"
+                                            placeholder="Contoh: Tolong jilid warna biru..."
+                                            className="resize-none min-h-[100px]"
+                                            maxLength={200}
+                                            {...form.register("notes")}
+                                        />
+                                        <div className="text-xs text-muted-foreground text-right mt-1">
+                                            {form.watch("notes")?.length || 0} /
+                                            200 karakter
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -675,7 +715,6 @@ export default function OrderPageRedesign() {
                                             {form.watch("paperType") || "-"}
                                         </span>
                                     </div>
-                                    {/* Summary for Ink Type */}
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">
                                             Tinta
@@ -692,10 +731,23 @@ export default function OrderPageRedesign() {
                                             {form.watch("finishing") || "-"}
                                         </span>
                                     </div>
+                                    {/* Menampilkan Catatan di Ringkasan (Optional) */}
+                                    {form.watch("notes") && (
+                                        <div className="flex flex-col gap-1 mt-2 p-2 bg-muted/50 rounded-md border border-muted">
+                                            <span className="text-xs font-semibold text-muted-foreground">
+                                                Catatan:
+                                            </span>
+                                            <span className="text-xs italic break-words">
+                                                "{form.watch("notes")}"
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                                 {checkoutPrice && checkoutPrice < 50000 ? (
                                     <Alert>
-                                        <AlertTitle className="flex items-center justify-center">{`Pesanan < Rp50.000 kena admin Rp1.000`}</AlertTitle>
+                                        <AlertTitle className="flex items-center justify-center text-xs">
+                                            {`Pesanan < Rp50.000 kena admin Rp1.000`}
+                                        </AlertTitle>
                                     </Alert>
                                 ) : (
                                     <div></div>

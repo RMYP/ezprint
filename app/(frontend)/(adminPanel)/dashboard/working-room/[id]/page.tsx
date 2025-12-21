@@ -21,11 +21,12 @@ import {
     Loader2,
 } from "lucide-react";
 
-// Ganti import ini dengan path yang benar ke action Anda
-import { getOrderWorkingRoom } from "@/app/(frontend)/action/action";
+import {
+    getOrderWorkingRoom,
+    updateOrderStatus,
+} from "@/app/(frontend)/action/action";
+import toast from "react-hot-toast";
 
-// (Salin semua Enum dan Interface Anda dari file asli ke sini)
-// --- Enum dan Interface ---
 enum OrderProgress {
     waitingCheckout = "waitingCheckout",
     waitingPayment = "waitingPayment",
@@ -199,7 +200,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
     useEffect(() => {
         const fetchOrder = async () => {
-            setIsPageLoading(true); // Mulai loading di sini
+            setIsPageLoading(true);
             try {
                 const { id } = await params;
 
@@ -224,37 +225,39 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     }, [params]);
 
     // mockup updateStatus
-    const handleUpdateStatus = () => {
+    const handleUpdateStatus = async () => {
         if (!selectedStatus) {
-            alert("Status yang dipilih tidak valid.");
+            toast.error("Status yang dipilih tidak valid.");
             return;
         }
 
         setIsLoading(true);
-        console.log(
-            "Mengupdate status dari",
-            currentStatus,
-            "menjadi",
-            selectedStatus
-        );
+        try {
+            if (order?.id) {
+                const payload = {
+                    id: order.id,
+                    status: selectedStatus,
+                };
 
-        setTimeout(() => {
-            setCurrentStatus(selectedStatus);
+                await updateOrderStatus(payload);
+
+                toast.success(
+                    `Status pesanan berhasil diubah menjadi: ${getStatusLabel(
+                        selectedStatus
+                    )}`,
+                    {
+                        position: "bottom-center",
+                    }
+                );
+
+                setCurrentStatus(selectedStatus);
+            }
+        } catch (error) {
+            console.error("Gagal update status:", error);
+            toast.error("Gagal mengubah status pesanan.");
+        } finally {
             setIsLoading(false);
-            alert(
-                `Status pesanan berhasil diubah menjadi: ${getStatusLabel(
-                    selectedStatus
-                )}`
-            );
-        }, 1000);
-    };
-
-    // Mockup simulasi download file
-    const handleDownload = () => {
-        if (!order) return;
-        alert(
-            `Mulai mengunduh: ${order.documentName}\nDari path: ${order.documentPath}`
-        );
+        }
     };
 
     if (isPageLoading || !order) {
@@ -267,7 +270,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     }
 
     const payment = order.Payment[0];
-    console.log(order);
 
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
@@ -342,7 +344,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                                 </p>
                             </div>
                             <Button
-                                onClick={handleDownload}
+                                onClick={() => {
+                                    window.open(
+                                        `/api/v1/dashboard/download/file/${order.id}`,
+                                        "_blank"
+                                    );
+                                }}
                                 className="w-full sm:w-auto flex-shrink-0"
                             >
                                 <Download className="mr-2 h-4 w-4" />
@@ -365,7 +372,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                                     Status Pesanan Saat Ini
                                 </label>
                                 <p className="text-lg font-semibold">
-                                    {/* Aman untuk diakses karena 'currentStatus' pasti sudah terisi */}
                                     {currentStatus
                                         ? getStatusLabel(currentStatus)
                                         : "Memuat..."}
@@ -380,7 +386,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                                     Ubah Status Ke
                                 </label>
                                 <Select
-                                    // 'selectedStatus' bisa jadi null saat awal, jadi kita beri fallback
                                     value={selectedStatus || ""}
                                     onValueChange={(value) =>
                                         setSelectedStatus(

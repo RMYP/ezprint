@@ -13,6 +13,8 @@ export async function POST(request: Request) {
             printType,
             totalPrice,
             fieldId,
+            notes,
+            inkType
         } = await request.json();
 
         const cookieStore = cookies();
@@ -33,7 +35,6 @@ export async function POST(request: Request) {
             where: {
                 id: fieldId,
             },
-
             data: {
                 sheetCount: sheetCount,
                 paperType: paperType,
@@ -43,6 +44,8 @@ export async function POST(request: Request) {
                 totalPrice: totalPrice,
                 status: "waitingCheckout",
                 paymentStatus: false,
+                notes: notes,
+                inkType: inkType
             },
         });
 
