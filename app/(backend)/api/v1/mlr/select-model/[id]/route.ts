@@ -21,7 +21,7 @@ export async function GET(
 
         const decodeJwt = await checkJwt(token);
 
-        if (!decodeJwt?.id && decodeJwt?.id !== process.env.ADMIN_EMAIL)
+        if (!decodeJwt?.id || decodeJwt?.email !== process.env.ADMIN_EMAIL)
             return httpResponse(403, false, "Invalid JWT", null);
 
         const updateStatus = await prisma.$transaction(async (tx) => {
