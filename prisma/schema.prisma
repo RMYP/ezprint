@@ -139,3 +139,23 @@ model PrintSpesification {
   finishingOptionId String
   paperGsmPriceId   String
 }
+
+model NotificationLog {
+  id        String   @unique @default(cuid())
+  orderId   String
+  status    String
+  reason    String? //this part only needed if the status was failed
+  createdAt DateTime @default(now())
+} 
+
+model PredictionModel {
+  id              String   @id @default(cuid())
+  modelName       String  
+  constant        Float
+  coeffImpresi    Float
+  coeffWarna      Float
+  coeffSisi       Float
+  coeffJilid      Float
+  isActive        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}

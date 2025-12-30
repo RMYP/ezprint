@@ -445,9 +445,70 @@ export const updateOrderStatus = async (data: UpdateOrderStatus) => {
             throw new Error(response.data.message || "Gagal menyimpan data");
         }
 
-        return response.data;
+        console.log(response.data.data);
+        return response.data.data;
     } catch (err: unknown) {
         const error = axiosErrorHandler(err);
         throw new Error(error);
+    }
+};
+
+// MLR
+
+interface constantInput {
+    modelName: string;
+    constant: number;
+    coeffImpresi: number;
+    coeffWarna: number;
+    coeffSisi: number;
+    coeffJilid: number;
+}
+
+export const constantInput = async (data: constantInput) => {
+    try {
+        const response = await axios.post(
+            `/api/v1/mlr/constant-input`,
+            { data },
+            { withCredentials: true }
+        );
+
+        if (response.status !== 200) {
+            throw new Error(response.data.message || "Update Failed");
+        }
+        return response.data;
+    } catch (err) {
+        console.error("Unexpected error:", err);
+        throw new Error("Unexpected server error");
+    }
+};
+
+export const getModel = async () => {
+    try {
+        const response = await axios.get(`/api/v1/mlr/get-model`, {
+            withCredentials: true,
+        });
+        if (response.status !== 200) {
+            throw new Error(response.data.message || "Failed");
+        }
+        return response.data;
+    } catch (err) {
+        console.error("Unexpected error:", err);
+        throw new Error("Unexpected server error");
+    }
+};
+
+export const updateModelStatus = async (id: string) => {
+    try {
+        const response = await axios.get(`/api/v1/mlr/select-model/${id}`, {
+            withCredentials: true,
+        });
+
+        if (response.status !== 200) {
+            throw new Error(response.data.message || "Failed");
+        }
+        return response.data;
+    } catch (err) {
+        console.error("Unexpected error:", err);
+        throw new Error("Unexpected server error");
     }
 };

@@ -218,28 +218,28 @@ export default function TransactionPage() {
                         <TabsList className="w-full flex justify-between h-auto p-0 bg-white rounded-none border-b border-gray-200 overflow-x-auto">
                             <TabsTrigger
                                 value="waitingPayment"
-                                className="flex-1 min-w-[100px] py-4 text-sm font-medium text-gray-600 data-[state=active]:text-slate-600 data-[state=active]:border-b-2 data-[state=active]:border-slate-600 data-[state=active]:shadow-none rounded-none transition-all"
+                                className="flex-1 min-w-[90px] py-4 text-sm font-medium text-gray-600 data-[state=active]:text-slate-600 data-[state=active]:border-b-2 data-[state=active]:border-slate-600 data-[state=active]:shadow-none rounded-none transition-all"
                             >
                                 Belum Bayar
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value="processing"
-                                className="flex-1 min-w-[100px] py-4 text-sm font-medium text-gray-600 data-[state=active]:text-slate-600 data-[state=active]:border-b-2 data-[state=active]:border-slate-600 data-[state=active]:shadow-none rounded-none transition-all"
+                                className="flex-1 min-w-[90px] py-4 text-sm font-medium text-gray-600 data-[state=active]:text-slate-600 data-[state=active]:border-b-2 data-[state=active]:border-slate-600 data-[state=active]:shadow-none rounded-none transition-all"
                             >
                                 Diproses
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value="ready"
-                                className="flex-1 min-w-[100px] py-4 text-sm font-medium text-gray-600 data-[state=active]:text-slate-600 data-[state=active]:border-b-2 data-[state=active]:border-slate-600 data-[state=active]:shadow-none rounded-none transition-all"
+                                className="flex-1 min-w-[90px] py-4 text-sm font-medium text-gray-600 data-[state=active]:text-slate-600 data-[state=active]:border-b-2 data-[state=active]:border-slate-600 data-[state=active]:shadow-none rounded-none transition-all"
                             >
                                 Siap Diambil
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value="finished"
-                                className="flex-1 min-w-[100px] py-4 text-sm font-medium text-gray-600 data-[state=active]:text-slate-600 data-[state=active]:border-b-2 data-[state=active]:border-slate-600 data-[state=active]:shadow-none rounded-none transition-all"
+                                className="flex-1 min-w-[90px] py-4 text-sm font-medium text-gray-600 data-[state=active]:text-slate-600 data-[state=active]:border-b-2 data-[state=active]:border-slate-600 data-[state=active]:shadow-none rounded-none transition-all"
                             >
                                 Selesai
                             </TabsTrigger>
@@ -272,11 +272,11 @@ export default function TransactionPage() {
                                     {/* Card Header */}
                                     <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                                         <div className="flex items-center gap-2">
-                                            <Store className="w-4 h-4 text-gray-800" />
-                                            <span className="font-semibold text-sm">
+                                            <Store className="w-4 h-4 text-gray-800 hidden lg:block" />
+                                            <span className="font-semibold text-sm hidden lg:block">
                                                 PrintKampus
                                             </span>
-                                            <span className="text-xs text-gray-400 mx-1">
+                                            <span className="text-xs text-gray-400 mx-1 hidden lg:block">
                                                 |
                                             </span>
                                             <span className="text-xs text-gray-500">

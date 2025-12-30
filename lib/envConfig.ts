@@ -13,6 +13,7 @@ export const MidtransBaseUrl = process.env.MidtransBaseUrl as string;
 export const AfterPayment = process.env.AFTER_PAYMENT as string;
 export const BaseUrl = process.env.BASE_URL as string;
 export const AdminEmail = process.env.ADMIN_EMAIL as string;
+export const FonnteClientKey = process.env.FONNTE_CLIENT_ID as string;
 
 export const oauth2Client = new google.auth.OAuth2(
     ClientId,
