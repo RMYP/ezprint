@@ -17,6 +17,7 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
+        console.log(id);
 
         if (!id) {
             return httpResponse(422, false, "Invalid status", null);
@@ -42,14 +43,13 @@ export async function GET(
             select: { transactionStatus: true },
         });
 
-        console.log(checkStatus);
         if (checkStatus?.transactionStatus === "settlement") {
             return httpResponse(201, true, "paymentSuccess", null);
         }
 
         // call Midtrans
         const getTransaction = await axios.get(
-            `${MidtransBaseUrl}/v2/${id}/status`,
+            `${MidtransBaseUrl}v2/${id}/status`,
             {
                 headers: {
                     accept: "application/json",
@@ -57,6 +57,7 @@ export async function GET(
                 },
             }
         );
+        console.log("midtrans",getTransaction)
         if (getTransaction.data?.transaction_status === "settlement") {
             const paymentData = await prisma.payment.findFirst({
                 where: { transactionId: id },
@@ -78,12 +79,19 @@ export async function GET(
                     }),
                 ]);
             }
-            return NextResponse.redirect(`${BaseUrl}/status/${id}`);
+            return NextResponse.json({
+                status: 200,
+                success: true,
+                message: "Payment updated to settlement",
+            });
         }
 
-        return NextResponse.redirect(AfterPayment);
+        return NextResponse.json({
+            status: 200,
+            success: false,
+            message: "Payment still pending",
+        });
     } catch (err: unknown) {
-        console.log(err);
         return httpResponse(
             500,
             false,

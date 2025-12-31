@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { triggerWhatsAppNotification } from "@/lib/whatsapp";
 import { NextResponse } from "next/server";
 import httpStatus from "@/lib/httpError";
+import { eventEmitter } from "@/lib/eventEmitter";
 
 export async function PATCH(request: Request) {
     try {
@@ -79,6 +80,7 @@ export async function PATCH(request: Request) {
             }
         }
 
+        eventEmitter.emit("orderUpdate");
         const payload = {
             currentStatus: data.status,
             selectedStatus: order.status,

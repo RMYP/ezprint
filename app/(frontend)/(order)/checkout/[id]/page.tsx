@@ -1,7 +1,10 @@
 "use client";
 
 import Navbar from "@/components/exNavbar";
-import { getTransaction } from "@/app/(frontend)/action/action";
+import {
+    getCheckPaymentStatus,
+    getTransaction,
+} from "@/app/(frontend)/action/action";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
@@ -97,14 +100,27 @@ export default function CheckoutPage({
             );
 
             toast.dismiss(toastId);
-
             if (response.data.success) {
                 if ((window as any).snap) {
                     (window as any).snap.pay(response.data.data.token, {
-                        onSuccess: function (result: any) {
+                        onSuccess: async function (result: any) {
                             console.log("Payment success", result);
-                            toast.success("Pembayaran Berhasil!");
-                            router.push(`/status/${orderId}`);
+                            const toastId = toast.loading(
+                                "Memverifikasi pembayaran..."
+                            );
+                            try {
+                                await getCheckPaymentStatus(response.data.data.transactionId);
+                                toast.dismiss(toastId);
+                                toast.success("Pembayaran Terverifikasi!");
+                                router.push(`/status/${orderId}`);
+                            } catch (err) {
+                                console.error(err);
+                                toast.dismiss(toastId);
+                                toast.error(
+                                    "Gagal verifikasi otomatis, silakan cek status pesanan."
+                                );
+                                router.push(`/status/${orderId}`);
+                            }
                         },
                         onPending: function (result: any) {
                             console.log("Payment pending", result);

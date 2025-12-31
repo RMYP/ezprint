@@ -201,7 +201,7 @@ export const getCheckPaymentStatus = async (id: string) => {
             }
         );
 
-        if (response.data.status == 201 || response.status == 307) {
+        if (response.data.status == 200 || response.status == 307) {
             return true;
         }
 

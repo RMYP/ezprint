@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { checkJwt } from "@/lib/jwtDecode";
 import httpError from "@/lib/httpError";
 import { cookies } from "next/headers";
+import { eventEmitter } from "@/lib/eventEmitter";
 
 export async function POST(request: Request) {
     try {
@@ -81,7 +82,6 @@ export async function POST(request: Request) {
                 inkType: inkType,
             },
         });
-
         return httpError(201, true, "Checkout successful", createCheckout);
     } catch (err: unknown) {
         return httpError(

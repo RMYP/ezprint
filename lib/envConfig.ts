@@ -24,3 +24,5 @@ export const oauth2Client = new google.auth.OAuth2(
 export const midtransCredential = Buffer.from(
     `${MidtransServerKey}:${MidtransClientKey}`
 ).toString("base64");
+
+console.log(midtransCredential)

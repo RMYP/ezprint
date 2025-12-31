@@ -28,6 +28,7 @@ export async function GET() {
             "Success Retrived Prediction Model",
             model
         );
+        
     } catch (err) {
         return httpResponse(
             500,
