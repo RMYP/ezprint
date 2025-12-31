@@ -10,6 +10,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import { checkJwt } from "@/lib/jwtDecode";
 import { cookies } from "next/headers";
+import { eventEmitter } from "@/lib/eventEmitter";
 
 export async function GET(
     request: NextRequest,
@@ -57,7 +58,6 @@ export async function GET(
                 },
             }
         );
-        console.log("midtrans",getTransaction)
         if (getTransaction.data?.transaction_status === "settlement") {
             const paymentData = await prisma.payment.findFirst({
                 where: { transactionId: id },
@@ -79,6 +79,8 @@ export async function GET(
                     }),
                 ]);
             }
+
+            eventEmitter.emit("orderUpdate")
             return NextResponse.json({
                 status: 200,
                 success: true,
