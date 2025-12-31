@@ -66,6 +66,8 @@ model Order {
   orderDate     DateTime       @default(now())
   user          User           @relation(fields: [userId], references: [id])
   Payment       Payment[]
+  estimatedTime Int?
+  readyAt       DateTime?
 }
 
 model Payment {
@@ -144,7 +146,7 @@ model NotificationLog {
   id        String   @unique @default(cuid())
   orderId   String
   status    String
-  reason    String? //this part only needed if the status was failed
+  reason    String? 
   createdAt DateTime @default(now())
 } 
 

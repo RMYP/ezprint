@@ -7,6 +7,14 @@ interface Detail {
     price: number;
 }
 
+interface Model {
+    constant: number;
+    coeffImpresi: number;
+    coeffWarna: number;
+    coeffSisi: number;
+    coeffJilid: number;
+}
+
 interface PriceSimulation {
     sheet: number | undefined;
 
@@ -15,10 +23,13 @@ interface PriceSimulation {
     printingType: Detail[];
     inkType: Detail[];
 
+    predictionModel: Model | undefined;
+    predictionTime: number;
+
     isLoading: boolean;
     price: number | undefined;
     checkoutPrice: number | undefined;
-    lastFetched: number; 
+    lastFetched: number;
 
     fetchPricingData: () => Promise<void>;
     setPrice: (
@@ -26,6 +37,12 @@ interface PriceSimulation {
         paperPrice: number,
         inkPrice: number,
         finishingPrice: number
+    ) => void;
+    setPrediction: (
+        impresi: number,
+        colors: number,
+        sisi: number,
+        jilid: number
     ) => void;
     setCheckout: (
         sheet: number,
@@ -45,14 +62,17 @@ export const useSimulation = create<PriceSimulation>()(
             printingType: [],
             inkType: [],
 
+            predictionModel: undefined,
+            predictionTime: 0,
+
             isLoading: false,
             price: undefined,
             checkoutPrice: undefined,
-            lastFetched: 0, 
+            lastFetched: 0,
 
             fetchPricingData: async () => {
                 const now = Date.now();
-                const ONE_HOUR = 60 * 60 * 1000; 
+                const ONE_HOUR = 60 * 60 * 1000;
 
                 if (
                     get().paperType.length > 0 &&
@@ -63,7 +83,9 @@ export const useSimulation = create<PriceSimulation>()(
 
                 set({ isLoading: true });
                 try {
-                    const response = await axios.get("/api/v1/order/pricing-options");
+                    const response = await axios.get(
+                        "/api/v1/order/pricing-options"
+                    );
 
                     if (response.data.status === 200) {
                         const {
@@ -71,6 +93,7 @@ export const useSimulation = create<PriceSimulation>()(
                             finishingOption,
                             printingType,
                             inkType,
+                            predictionModel,
                         } = response.data.data;
 
                         set({
@@ -92,7 +115,8 @@ export const useSimulation = create<PriceSimulation>()(
                                 type: item.InkType,
                                 price: item.price,
                             })),
-                            lastFetched: now, 
+                            predictionModel: predictionModel,
+                            lastFetched: now,
                         });
                     }
                 } catch (error) {
@@ -107,6 +131,24 @@ export const useSimulation = create<PriceSimulation>()(
                 set(() => ({ price: total }));
             },
 
+            setPrediction: (impresi, colors, sisi, jilid) => {
+                const model = get().predictionModel;
+
+                if (!model) {
+                    console.warn("Prediction model is not loaded yet");
+                    return;
+                }
+
+                const estimatedTime =
+                    model.constant +
+                    model.coeffImpresi * impresi +
+                    model.coeffWarna * colors +
+                    model.coeffSisi * sisi +
+                    model.coeffJilid * jilid;
+
+                set({ predictionTime: Math.ceil(estimatedTime) });
+            },
+            
             setCheckout: (
                 sheet,
                 paperPrice,
@@ -121,7 +163,7 @@ export const useSimulation = create<PriceSimulation>()(
             },
         }),
         {
-            name: "price-simulation-storage", 
+            name: "price-simulation-storage",
             storage: createJSONStorage(() => sessionStorage),
             partialize: (state) => ({
                 paperType: state.paperType,

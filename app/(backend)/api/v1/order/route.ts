@@ -14,7 +14,7 @@ export async function POST(request: Request) {
             totalPrice,
             fieldId,
             notes,
-            inkType
+            inkType,
         } = await request.json();
 
         const cookieStore = cookies();
@@ -26,11 +26,44 @@ export async function POST(request: Request) {
         }
 
         const decodeJwt = await checkJwt(token);
-
         if (!decodeJwt?.id) {
             return httpError(403, false, "Invalid JWT", null);
         }
 
+        const [paperData, finishingData, inkData, predictionModel] =
+            await Promise.all([
+                prisma.paperGsmPrice.findFirst({
+                    where: { gsm: paperType },
+                    select: { price: true },
+                }),
+                prisma.finishingOption.findFirst({
+                    where: { finishingType: finishing },
+                    select: { price: true },
+                }),
+                prisma.inkType.findFirst({
+                    where: { InkType: inkType },
+                    select: { price: true },
+                }),
+                prisma.predictionModel.findFirst({
+                    where: {
+                        isActive: true,
+                    },
+                }),
+            ]);
+
+        if (!paperData || !inkData || !finishingData) {
+            console.log(paperData, inkData, finishingData);
+            return httpError(500, false, "Database Error", null);
+        }
+
+        const calculatedTotalPrice =
+            ((paperData.price + inkData.price) * sheetCount +
+                finishingData.price) *
+            quantity;
+
+        if (calculatedTotalPrice !== totalPrice) {
+            return httpError(400, false, "Spesifikasi tidak valid", null);
+        }
         const createCheckout = await prisma.order.update({
             where: {
                 id: fieldId,
@@ -45,7 +78,7 @@ export async function POST(request: Request) {
                 status: "waitingCheckout",
                 paymentStatus: false,
                 notes: notes,
-                inkType: inkType
+                inkType: inkType,
             },
         });
 
