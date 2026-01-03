@@ -49,25 +49,26 @@ model User {
 }
 
 model Order {
-  id            String         @unique @default(cuid())
-  sheetCount    Int?
-  paperType     String?
-  finishing     String?
-  quantity      Int?
-  printType     String?
-  inkType       String?
-  totalPrice    Int?
-  notes         String?
-  status        OrderProgress?
-  paymentStatus Boolean?
-  documentPath  String
-  documentName  String
-  userId        String
-  orderDate     DateTime       @default(now())
-  user          User           @relation(fields: [userId], references: [id])
-  Payment       Payment[]
-  estimatedTime Int?
-  readyAt       DateTime?
+  id                     String         @unique @default(cuid())
+  sheetCount             Int?
+  paperType              String?
+  finishing              String?
+  quantity               Int?
+  printType              String?
+  inkType                String?
+  totalPrice             Int?
+  notes                  String?
+  status                 OrderProgress?
+  paymentStatus          Boolean?
+  documentPath           String
+  documentName           String
+  userId                 String
+  orderDate              DateTime       @default(now())
+  user                   User           @relation(fields: [userId], references: [id])
+  Payment                Payment[]
+  estimatedTime_Machine  Int? //menghitung estimasi waktu pengerjaan yang diperlukan pada bagian mesin
+  estimatedTime_Operator Int? //menghitung estimasi waktu pengerjaan yang diperlukan pada bagian operator jika pesanan memerlukan jilid
+  readyAt                DateTime?
 }
 
 model Payment {
@@ -84,14 +85,13 @@ model Payment {
   transactionStatus TransactionStatus
 }
 
+// model ini hanya untuk melacak waktu Mesin atau tenaga operator iddle
+// jika iddle maka bisa lanjut ke order selanjutnya.
 model DailyPrintSummary {
-  id             String   @unique @default(cuid())
-  date           DateTime @unique @db.Date
-  totalSheets    Int      @default(0)
-  isWeekend      Int      @default(0)
-  isHoliday      Int      @default(0)
-  isPeakAcademic Int      @default(0)
-  createdAt      DateTime @default(now())
+  id                    String   @unique @default(cuid())
+  lastPrinterFinishTime DateTime
+  lastBinderFinishTime  DateTime
+  createdAt             DateTime @default(now())
 }
 
 model PaperGsmPrice {
@@ -146,18 +146,18 @@ model NotificationLog {
   id        String   @unique @default(cuid())
   orderId   String
   status    String
-  reason    String? 
+  reason    String?
   createdAt DateTime @default(now())
-} 
+}
 
 model PredictionModel {
-  id              String   @id @default(cuid())
-  modelName       String  
-  constant        Float
-  coeffImpresi    Float
-  coeffWarna      Float
-  coeffSisi       Float
-  coeffJilid      Float
-  isActive        Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  id           String   @id @default(cuid())
+  modelName    String
+  constant     Float
+  coeffImpresi Float
+  coeffWarna   Float
+  coeffSisi    Float
+  coeffJilid   Float
+  isActive     Boolean  @default(false)
+  createdAt    DateTime @default(now())
 }

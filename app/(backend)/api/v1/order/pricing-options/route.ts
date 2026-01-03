@@ -1,7 +1,6 @@
 // app/(backend)/api/v1/pricing-options/route.ts
 import prisma from "@/lib/prisma";
 import httpResponse from "@/lib/httpError";
-import { NextResponse } from "next/server";
 
 export async function GET() {
     try {

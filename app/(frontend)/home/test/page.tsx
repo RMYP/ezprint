@@ -9,7 +9,6 @@ export default function TestSSEPage() {
   const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
-    // Menghubungkan ke route SSE yang telah dibuat
     const eventSource = new EventSource("/api/v1/sse");
 
     eventSource.onopen = () => {

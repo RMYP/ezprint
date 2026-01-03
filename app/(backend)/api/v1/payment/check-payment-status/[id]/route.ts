@@ -80,7 +80,7 @@ export async function GET(
                 ]);
             }
 
-            eventEmitter.emit("orderUpdate")
+            eventEmitter.emit("orderUpdated")
             return NextResponse.json({
                 status: 200,
                 success: true,

@@ -8,15 +8,12 @@ import Navbar from "@/components/exNavbar";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-
-// Assumed imports
 import { useSimulation } from "@/hooks/price-simulation.store";
 import { useLogin } from "@/hooks/user-store";
 import { createCheckout, uploadFileCheckout } from "../../action/action";
 
-// Pastikan Anda sudah menginstall/membuat komponen Textarea
+import { formatEstimation } from "@/lib/helper";
 import { Textarea } from "@/components/ui/textarea";
-
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -44,6 +41,7 @@ import {
     Home,
     Store,
     MessageSquare,
+    Timer,
 } from "lucide-react";
 
 // Helper format price
@@ -120,6 +118,8 @@ export default function OrderPageRedesign() {
         setCheckout,
         checkoutPrice,
         fetchPricingData,
+        setPrediction,
+        predictionTime,
     } = useSimulation();
 
     useEffect(() => {
@@ -151,6 +151,7 @@ export default function OrderPageRedesign() {
             finishing,
             quantity,
             inkType: selectedInkType,
+            printType,
         } = form.getValues();
 
         const isFormValid =
@@ -183,6 +184,14 @@ export default function OrderPageRedesign() {
                     finish.price,
                     quantity,
                     ink.price
+                );
+                console.log(finishing);
+                setPrediction(
+                    sheetCount * quantity,
+                    selectedInkType,
+                    printType,
+                    quantity,
+                    finishing
                 );
                 setIsCalculatedPrice(true);
             }
@@ -743,6 +752,37 @@ export default function OrderPageRedesign() {
                                         </div>
                                     )}
                                 </div>
+
+                                <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-blue-700">
+                                        <Timer className="h-4 w-4" />
+                                        <span className="text-sm font-medium">
+                                            Estimasi Pengerjaan
+                                        </span>
+                                    </div>
+
+                                    <div className="text-sm font-bold text-blue-900">
+                                        {isCalculating ? (
+                                            <span className="animate-pulse">
+                                                ...
+                                            </span>
+                                        ) : predictionTime &&
+                                          predictionTime > 0 ? (
+                                            <span>
+                                                ±{" "}
+                                                {formatEstimation(
+                                                    predictionTime
+                                                )}{" "}
+                                                k
+                                            </span>
+                                        ) : (
+                                            <span className="text-blue-400">
+                                                -
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {checkoutPrice && checkoutPrice < 50000 ? (
                                     <Alert>
                                         <AlertTitle className="flex items-center justify-center text-xs">

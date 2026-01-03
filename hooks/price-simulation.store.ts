@@ -8,11 +8,15 @@ interface Detail {
 }
 
 interface Model {
+    id: string;
+    modelName: string;
     constant: number;
     coeffImpresi: number;
     coeffWarna: number;
     coeffSisi: number;
     coeffJilid: number;
+    isActive: boolean;
+    createdAt: Date;
 }
 
 interface PriceSimulation {
@@ -25,6 +29,8 @@ interface PriceSimulation {
 
     predictionModel: Model | undefined;
     predictionTime: number;
+    machineTime: number;
+    operatorsTime: number;
 
     isLoading: boolean;
     price: number | undefined;
@@ -40,9 +46,10 @@ interface PriceSimulation {
     ) => void;
     setPrediction: (
         impresi: number,
-        colors: number,
-        sisi: number,
-        jilid: number
+        colors: string,
+        sisi: string,
+        quantity: number,
+        jilid: string
     ) => void;
     setCheckout: (
         sheet: number,
@@ -64,6 +71,8 @@ export const useSimulation = create<PriceSimulation>()(
 
             predictionModel: undefined,
             predictionTime: 0,
+            machineTime: 0,
+            operatorsTime: 0,
 
             isLoading: false,
             price: undefined,
@@ -96,6 +105,7 @@ export const useSimulation = create<PriceSimulation>()(
                             predictionModel,
                         } = response.data.data;
 
+                        console.log(predictionModel);
                         set({
                             paperType: paperGsm.map((item: any) => ({
                                 type: item.gsm,
@@ -131,24 +141,29 @@ export const useSimulation = create<PriceSimulation>()(
                 set(() => ({ price: total }));
             },
 
-            setPrediction: (impresi, colors, sisi, jilid) => {
+            setPrediction: (impresi, colors, sisi, quantity, jilid) => {
                 const model = get().predictionModel;
-
                 if (!model) {
                     console.warn("Prediction model is not loaded yet");
                     return;
                 }
 
+                const warna = colors == "Hitam Putih" ? 0 : 1;
+                const printType = sisi == "Cetak Satu Sisi (simplex)" ? 0 : 1;
+                const getJilidQty = () => {
+                    const isJilid = jilid.toLowerCase().includes("jilid");
+                    return isJilid ? quantity : 0;
+                };
+                
                 const estimatedTime =
                     model.constant +
                     model.coeffImpresi * impresi +
-                    model.coeffWarna * colors +
-                    model.coeffSisi * sisi +
-                    model.coeffJilid * jilid;
-
+                    model.coeffWarna * warna +
+                    model.coeffSisi * printType +
+                    model.coeffJilid * getJilidQty();
                 set({ predictionTime: Math.ceil(estimatedTime) });
             },
-            
+
             setCheckout: (
                 sheet,
                 paperPrice,
@@ -171,6 +186,7 @@ export const useSimulation = create<PriceSimulation>()(
                 printingType: state.printingType,
                 inkType: state.inkType,
                 lastFetched: state.lastFetched,
+                predictionModel: state.predictionModel,
             }),
         }
     )
