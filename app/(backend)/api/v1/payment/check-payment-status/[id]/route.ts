@@ -58,6 +58,7 @@ export async function GET(
                 },
             }
         );
+        
         if (getTransaction.data?.transaction_status === "settlement") {
             const paymentData = await prisma.payment.findFirst({
                 where: { transactionId: id },
@@ -65,28 +66,80 @@ export async function GET(
             });
 
             if (paymentData) {
-                await prisma.$transaction([
-                    prisma.payment.updateMany({
+                await prisma.$transaction(async (tx) => {
+                    tx.payment.updateMany({
                         where: { transactionId: id },
                         data: { transactionStatus: "settlement" },
-                    }),
-                    prisma.order.update({
+                    });
+                    const orderUpdate = await tx.order.findFirst({
+                        where: { id: paymentData.orderId },
+                    });
+                    let queueSummary = await tx.dailyPrintSummary.findFirst({
+                        orderBy: { createdAt: "desc" },
+                    });
+
+                    if (!queueSummary) {
+                        queueSummary = await tx.dailyPrintSummary.create({
+                            data: {
+                                lastPrinterFinishTime: new Date(),
+                                lastBinderFinishTime: new Date(),
+                            },
+                        });
+                    }
+
+                    const now = new Date();
+                    const lastPrint = new Date(
+                        queueSummary.lastPrinterFinishTime
+                    );
+                    const lastBind = new Date(
+                        queueSummary.lastBinderFinishTime
+                    );
+
+                    const machineDur = orderUpdate?.estimatedTime_Machine || 0;
+                    const operatorDur =
+                        orderUpdate?.estimatedTime_Operator || 0;
+
+                    const startPrint = lastPrint > now ? lastPrint : now;
+                    const endPrint = new Date(
+                        startPrint.getTime() + machineDur * 60000
+                    );
+
+                    const startBind = lastBind > endPrint ? lastBind : endPrint;
+                    const endBind = new Date(
+                        startBind.getTime() + operatorDur * 60000
+                    );
+
+                    await tx.dailyPrintSummary.update({
+                        where: { id: queueSummary.id },
+                        data: {
+                            lastPrinterFinishTime: endPrint,
+                            lastBinderFinishTime: endBind,
+                        },
+                    });
+
+                    const updatedOrder = await tx.order.update({
                         where: { id: paymentData.orderId },
                         data: {
-                            paymentStatus: true,
                             status: "onProgress",
+                            paymentStatus: true,
+                            readyAt: endBind,
                         },
-                    }),
-                ]);
+                    });
+                    return updatedOrder;
+                });
             }
-
-            eventEmitter.emit("orderUpdated")
+            eventEmitter.emit("orderUpdated");
             return NextResponse.json({
                 status: 200,
                 success: true,
                 message: "Payment updated to settlement",
             });
         }
+
+        // await prisma.order.update({
+        //         where: { id: orderId },
+        //         data: { status: "cancelled" }
+        //      });
 
         return NextResponse.json({
             status: 200,

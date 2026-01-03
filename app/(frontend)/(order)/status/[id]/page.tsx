@@ -20,6 +20,7 @@ import {
     ClipboardList,
 } from "lucide-react";
 import { getChartById } from "../../../action/action";
+import { PickupScheduleCard } from "@/components/pickup-schedule-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,9 +43,8 @@ const stages = [
     { name: "Pesanan Siap Diambil", status: "finished" },
 ];
 
-// Interface untuk data transaksi
 interface TransactionData {
-    id: string; // Tambahkan ID untuk tombol "Bayar"
+    id: string;
     sheetCount: number;
     paperType: string;
     finishing: string;
@@ -56,10 +56,12 @@ interface TransactionData {
     documentPath: string;
     documentName: string;
     userId: string;
-    orderDate: string; // Ini sudah diformat sebagai string oleh useEffect Anda
+    orderDate: string;
+    estimatedTime_Machine: number;
+    estimatedTime_Operator: number;
+    readyAt: Date;
 }
 
-// Komponen helper untuk menampilkan detail
 function DetailItem({
     icon: Icon,
     label,
@@ -82,7 +84,6 @@ function DetailItem({
     );
 }
 
-// Helper untuk format harga
 const formatPrice = (price: number | null | undefined) => {
     if (price === null || price === undefined) return "N/A";
     return new Intl.NumberFormat("id-ID", {
@@ -92,7 +93,6 @@ const formatPrice = (price: number | null | undefined) => {
     }).format(price);
 };
 
-// Komponen Skeleton untuk halaman
 function PageSkeleton() {
     return (
         <div>
@@ -163,7 +163,6 @@ export default function OrderProgressPage({
                 const { id } = await params;
                 const data = await getChartById(id);
 
-                // Format tanggal
                 const date = new Date(data.orderDate);
                 const newDate = date
                     .toLocaleString("id-ID", {
@@ -180,14 +179,13 @@ export default function OrderProgressPage({
 
                 setTransactionData(data);
 
-                // Mapping status ke index
                 const statusMap: Record<string, number> = {
                     waitingCheckout: 0,
                     waitingPayment: 1,
                     confirmOrder: 2,
                     onProgress: 3,
                     finished: 4,
-                    deny: -1, // Status khusus untuk ditolak
+                    deny: -1,
                 };
 
                 if (data?.status in statusMap) {
@@ -357,6 +355,8 @@ export default function OrderProgressPage({
                                 />
                             </CardContent>
                         </Card>
+
+                        <PickupScheduleCard readyAt={transactionData.readyAt} />
 
                         {/* --- Card 3: Lokasi Pengambilan --- */}
                         <Card>

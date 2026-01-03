@@ -37,8 +37,8 @@ export async function GET(
 
         if (
             !getOrder ||
-            !getOrder.estimatedTime_Machine ||
-            !getOrder.estimatedTime_Operator
+            typeof getOrder.estimatedTime_Machine !== "number" ||
+            typeof getOrder.estimatedTime_Operator !== "number"
         ) {
             return httpResponse(404, false, "Order Not Found", null);
         }
