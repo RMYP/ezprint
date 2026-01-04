@@ -41,7 +41,7 @@ export async function GET(
             where: { transactionId: id },
             orderBy: { transactionTime: "desc" },
             take: 1,
-            select: { transactionStatus: true },
+            select: { transactionStatus: true, orderId: true },
         });
 
         if (checkStatus?.transactionStatus === "settlement") {
@@ -58,22 +58,27 @@ export async function GET(
                 },
             }
         );
-        
-        if (getTransaction.data?.transaction_status === "settlement") {
-            const paymentData = await prisma.payment.findFirst({
-                where: { transactionId: id },
-                select: { orderId: true },
-            });
 
+        if (getTransaction.data?.transaction_status === "settlement") {
+            const paymentData = checkStatus;
             if (paymentData) {
                 await prisma.$transaction(async (tx) => {
+                    const existingOrder = await tx.order.findUnique({
+                        where: { id: paymentData.orderId },
+                    });
+
+                    if (
+                        existingOrder?.paymentStatus === true ||
+                        existingOrder?.status === "onProgress"
+                    ) {
+                        return;
+                    }
+
                     tx.payment.updateMany({
                         where: { transactionId: id },
                         data: { transactionStatus: "settlement" },
                     });
-                    const orderUpdate = await tx.order.findFirst({
-                        where: { id: paymentData.orderId },
-                    });
+
                     let queueSummary = await tx.dailyPrintSummary.findFirst({
                         orderBy: { createdAt: "desc" },
                     });
@@ -88,25 +93,29 @@ export async function GET(
                     }
 
                     const now = new Date();
+
                     const lastPrint = new Date(
                         queueSummary.lastPrinterFinishTime
                     );
+
                     const lastBind = new Date(
                         queueSummary.lastBinderFinishTime
                     );
 
-                    const machineDur = orderUpdate?.estimatedTime_Machine || 0;
+                    const machineDur =
+                        existingOrder?.estimatedTime_Machine || 0;
                     const operatorDur =
-                        orderUpdate?.estimatedTime_Operator || 0;
+                        existingOrder?.estimatedTime_Operator || 0;
 
                     const startPrint = lastPrint > now ? lastPrint : now;
                     const endPrint = new Date(
-                        startPrint.getTime() + machineDur * 60000
+                        startPrint.getTime() + machineDur * 1000
                     );
 
                     const startBind = lastBind > endPrint ? lastBind : endPrint;
+
                     const endBind = new Date(
-                        startBind.getTime() + operatorDur * 60000
+                        startBind.getTime() + operatorDur * 1000
                     );
 
                     await tx.dailyPrintSummary.update({
@@ -117,7 +126,7 @@ export async function GET(
                         },
                     });
 
-                    const updatedOrder = await tx.order.update({
+                    await tx.order.update({
                         where: { id: paymentData.orderId },
                         data: {
                             status: "onProgress",
@@ -125,7 +134,6 @@ export async function GET(
                             readyAt: endBind,
                         },
                     });
-                    return updatedOrder;
                 });
             }
             eventEmitter.emit("orderUpdated");
@@ -135,11 +143,6 @@ export async function GET(
                 message: "Payment updated to settlement",
             });
         }
-
-        // await prisma.order.update({
-        //         where: { id: orderId },
-        //         data: { status: "cancelled" }
-        //      });
 
         return NextResponse.json({
             status: 200,

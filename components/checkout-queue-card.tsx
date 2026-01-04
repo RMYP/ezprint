@@ -44,7 +44,7 @@ const formatDate = (date: Date) => {
 };
 
 interface QueueCardProps {
-    durationMinutes: number; 
+    durationMinutes: number;
 }
 
 export function QueueStatusCardMock({ durationMinutes }: QueueCardProps) {
@@ -169,7 +169,9 @@ export function QueueStatusCardMock({ durationMinutes }: QueueCardProps) {
                     <div className="absolute top-8 -left-3">
                         <div className="flex items-center gap-1.5 bg-background border shadow-sm px-2 py-1 rounded-md text-[10px] font-medium text-muted-foreground">
                             <Hourglass className="h-3 w-3" />
-                            <span>+{durationMinutes} Menit Proses</span>
+                            <span>
+                                +{Math.ceil(durationMinutes)} Menit Proses
+                            </span>
                         </div>
                     </div>
 
