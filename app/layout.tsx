@@ -5,6 +5,8 @@ import { Toaster } from "react-hot-toast";
 import Footer from "@/components/footer";
 import Script from "next/script";
 
+import WhatsAppFloat from "@/components/help-bubble";
+
 const geistSans = Geist({
     variable: "--font-geist-sans",
     subsets: ["latin"],

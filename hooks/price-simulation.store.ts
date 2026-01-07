@@ -7,6 +7,18 @@ interface Detail {
     price: number;
 }
 
+interface Model {
+    id: string;
+    modelName: string;
+    constant: number;
+    coeffImpresi: number;
+    coeffWarna: number;
+    coeffSisi: number;
+    coeffJilid: number;
+    isActive: boolean;
+    createdAt: Date;
+}
+
 interface PriceSimulation {
     sheet: number | undefined;
 
@@ -15,10 +27,15 @@ interface PriceSimulation {
     printingType: Detail[];
     inkType: Detail[];
 
+    predictionModel: Model | undefined;
+    predictionTime: number;
+    machineTime: number;
+    operatorsTime: number;
+
     isLoading: boolean;
     price: number | undefined;
     checkoutPrice: number | undefined;
-    lastFetched: number; 
+    lastFetched: number;
 
     fetchPricingData: () => Promise<void>;
     setPrice: (
@@ -26,6 +43,13 @@ interface PriceSimulation {
         paperPrice: number,
         inkPrice: number,
         finishingPrice: number
+    ) => void;
+    setPrediction: (
+        impresi: number,
+        colors: string,
+        sisi: string,
+        quantity: number,
+        jilid: string
     ) => void;
     setCheckout: (
         sheet: number,
@@ -45,14 +69,19 @@ export const useSimulation = create<PriceSimulation>()(
             printingType: [],
             inkType: [],
 
+            predictionModel: undefined,
+            predictionTime: 0,
+            machineTime: 0,
+            operatorsTime: 0,
+
             isLoading: false,
             price: undefined,
             checkoutPrice: undefined,
-            lastFetched: 0, 
+            lastFetched: 0,
 
             fetchPricingData: async () => {
                 const now = Date.now();
-                const ONE_HOUR = 60 * 60 * 1000; 
+                const ONE_HOUR = 60 * 60 * 1000;
 
                 if (
                     get().paperType.length > 0 &&
@@ -63,7 +92,9 @@ export const useSimulation = create<PriceSimulation>()(
 
                 set({ isLoading: true });
                 try {
-                    const response = await axios.get("/api/v1/order/pricing-options");
+                    const response = await axios.get(
+                        "/api/v1/order/pricing-options"
+                    );
 
                     if (response.data.status === 200) {
                         const {
@@ -71,8 +102,10 @@ export const useSimulation = create<PriceSimulation>()(
                             finishingOption,
                             printingType,
                             inkType,
+                            predictionModel,
                         } = response.data.data;
 
+                        console.log(predictionModel);
                         set({
                             paperType: paperGsm.map((item: any) => ({
                                 type: item.gsm,
@@ -92,7 +125,8 @@ export const useSimulation = create<PriceSimulation>()(
                                 type: item.InkType,
                                 price: item.price,
                             })),
-                            lastFetched: now, 
+                            predictionModel: predictionModel,
+                            lastFetched: now,
                         });
                     }
                 } catch (error) {
@@ -105,6 +139,29 @@ export const useSimulation = create<PriceSimulation>()(
             setPrice: (sheet, paperPrice, inkPrice, finishingPrice) => {
                 const total = sheet * (paperPrice + inkPrice) + finishingPrice;
                 set(() => ({ price: total }));
+            },
+
+            setPrediction: (impresi, colors, sisi, quantity, jilid) => {
+                const model = get().predictionModel;
+                if (!model) {
+                    console.warn("Prediction model is not loaded yet");
+                    return;
+                }
+
+                const warna = colors == "Hitam Putih" ? 0 : 1;
+                const printType = sisi == "Cetak Satu Sisi (simplex)" ? 0 : 1;
+                const getJilidQty = () => {
+                    const isJilid = jilid.toLowerCase().includes("jilid");
+                    return isJilid ? quantity : 0;
+                };
+                
+                const estimatedTime =
+                    model.constant +
+                    model.coeffImpresi * impresi +
+                    model.coeffWarna * warna +
+                    model.coeffSisi * printType +
+                    model.coeffJilid * getJilidQty();
+                set({ predictionTime: Math.ceil(estimatedTime) });
             },
 
             setCheckout: (
@@ -121,7 +178,7 @@ export const useSimulation = create<PriceSimulation>()(
             },
         }),
         {
-            name: "price-simulation-storage", 
+            name: "price-simulation-storage",
             storage: createJSONStorage(() => sessionStorage),
             partialize: (state) => ({
                 paperType: state.paperType,
@@ -129,6 +186,7 @@ export const useSimulation = create<PriceSimulation>()(
                 printingType: state.printingType,
                 inkType: state.inkType,
                 lastFetched: state.lastFetched,
+                predictionModel: state.predictionModel,
             }),
         }
     )

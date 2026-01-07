@@ -14,7 +14,7 @@ export async function POST(request: Request) {
             totalPrice,
             fieldId,
             notes,
-            inkType
+            inkType,
         } = await request.json();
 
         const cookieStore = cookies();
@@ -26,10 +26,72 @@ export async function POST(request: Request) {
         }
 
         const decodeJwt = await checkJwt(token);
-
         if (!decodeJwt?.id) {
             return httpError(403, false, "Invalid JWT", null);
         }
+
+        const [paperData, finishingData, inkData, predictionModel] =
+            await Promise.all([
+                prisma.paperGsmPrice.findFirst({
+                    where: { gsm: paperType },
+                    select: { price: true },
+                }),
+                prisma.finishingOption.findFirst({
+                    where: { finishingType: finishing },
+                    select: { price: true },
+                }),
+                prisma.inkType.findFirst({
+                    where: { InkType: inkType },
+                    select: { price: true },
+                }),
+                prisma.predictionModel.findFirst({
+                    where: {
+                        isActive: true,
+                    },
+                }),
+            ]);
+
+        if (!paperData || !inkData || !finishingData || !predictionModel) {
+            console.log({ paperData, inkData, finishingData, predictionModel });
+            return httpError(
+                500,
+                false,
+                "Database Error: Data referensi tidak ditemukan",
+                null
+            );
+        }
+
+        const calculatedTotalPrice =
+            ((paperData.price + inkData.price) * sheetCount +
+                finishingData.price) *
+            quantity;
+
+        if (calculatedTotalPrice !== totalPrice) {
+            return httpError(
+                400,
+                false,
+                "Harga tidak valid / telah berubah",
+                null
+            );
+        }
+
+        const getJilidQty = () => {
+            const isJilid = finishing.toLowerCase().includes("jilid");
+            return isJilid ? quantity : 0;
+        };
+
+        const rawMachineDuration =
+            predictionModel.constant +
+            sheetCount * quantity * predictionModel.coeffImpresi +
+            (inkType === "Hitam Putih" ? 0 : 1 * predictionModel.coeffWarna) +
+            (printType.toLowerCase().includes("satu sisi")
+                ? 0
+                : 1 * predictionModel.coeffSisi);
+
+        const rawOparatorDuration = getJilidQty() * predictionModel.coeffJilid;
+
+        const calculatedEstimatedTimeMachine = Math.ceil(rawMachineDuration);
+        const calculatedEstimatedTimeOperator = Math.ceil(rawOparatorDuration);
 
         const createCheckout = await prisma.order.update({
             where: {
@@ -45,7 +107,9 @@ export async function POST(request: Request) {
                 status: "waitingCheckout",
                 paymentStatus: false,
                 notes: notes,
-                inkType: inkType
+                inkType: inkType,
+                estimatedTime_Machine: calculatedEstimatedTimeMachine,
+                estimatedTime_Operator: calculatedEstimatedTimeOperator,
             },
         });
 

@@ -1,12 +1,16 @@
 "use client";
 
 import Navbar from "@/components/exNavbar";
-import { getTransaction } from "@/app/(frontend)/action/action";
+import {
+    getCheckPaymentStatus,
+    getTransaction,
+} from "@/app/(frontend)/action/action";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Alert, AlertTitle } from "@/components/ui/alert";
+import { QueueStatusCardMock } from "@/components/checkout-queue-card";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +34,7 @@ interface TransactionInterfaceDetail {
     username: string;
     phoneNumber: string;
     printType: string;
+    durationMinutes: number;
 }
 
 // Komponen Skeleton untuk loading
@@ -97,14 +102,29 @@ export default function CheckoutPage({
             );
 
             toast.dismiss(toastId);
-
             if (response.data.success) {
                 if ((window as any).snap) {
                     (window as any).snap.pay(response.data.data.token, {
-                        onSuccess: function (result: any) {
+                        onSuccess: async function (result: any) {
                             console.log("Payment success", result);
-                            toast.success("Pembayaran Berhasil!");
-                            router.push(`/status/${orderId}`);
+                            const toastId = toast.loading(
+                                "Memverifikasi pembayaran..."
+                            );
+                            try {
+                                await getCheckPaymentStatus(
+                                    response.data.data.transactionId
+                                );
+                                toast.dismiss(toastId);
+                                toast.success("Pembayaran Terverifikasi!");
+                                router.push(`/status/${orderId}`);
+                            } catch (err) {
+                                console.error(err);
+                                toast.dismiss(toastId);
+                                toast.error(
+                                    "Gagal verifikasi otomatis, silakan cek status pesanan."
+                                );
+                                router.push(`/status/${orderId}`);
+                            }
                         },
                         onPending: function (result: any) {
                             console.log("Payment pending", result);
@@ -190,7 +210,13 @@ export default function CheckoutPage({
                                 </div>
                             </CardContent>
                         </Card>
-
+                        <QueueStatusCardMock
+                            durationMinutes={
+                                transaction?.durationMinutes
+                                    ? transaction?.durationMinutes
+                                    : 30
+                            }
+                        />
                         {/* Kartu Informasi Pembayaran Aman */}
                         <Card className="bg-blue-50/50 border-blue-100">
                             <CardContent className="flex items-center gap-4 p-4 md:p-6">

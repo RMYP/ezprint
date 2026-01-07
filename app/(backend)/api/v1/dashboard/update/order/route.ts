@@ -1,9 +1,10 @@
 import { checkJwt } from "@/lib/jwtDecode";
 import prisma from "@/lib/prisma";
 import { cookies } from "next/headers";
-import fs from "fs";
+import { triggerWhatsAppNotification } from "@/lib/whatsapp";
 import { NextResponse } from "next/server";
 import httpStatus from "@/lib/httpError";
+import { eventEmitter } from "@/lib/eventEmitter";
 
 export async function PATCH(request: Request) {
     try {
@@ -50,6 +51,9 @@ export async function PATCH(request: Request) {
             data: {
                 status: data.status,
             },
+            include: {
+                user: true,
+            },
         });
 
         if (!order) {
@@ -63,6 +67,20 @@ export async function PATCH(request: Request) {
             );
         }
 
+        if (data.status == "finished") {
+            try {
+                const payload = {
+                    orderId: order.id,
+                    phone: order.user.phoneNum || "",
+                    name: order.user.username,
+                };
+                payload && (await triggerWhatsAppNotification(payload));
+            } catch (err) {
+                console.error("WhatsApp Notification Error:", err);
+            }
+        }
+
+        eventEmitter.emit("orderUpdate");
         const payload = {
             currentStatus: data.status,
             selectedStatus: order.status,

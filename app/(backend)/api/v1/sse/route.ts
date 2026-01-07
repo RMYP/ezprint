@@ -1,43 +1,49 @@
 import { eventEmitter } from "@/lib/eventEmitter";
+import prisma from "@/lib/prisma";
 
-export async function GET(request: Request) {
-  try {
+export async function GET() {
+    const encoder = new TextEncoder();
+
     const stream = new ReadableStream({
-      start(controller) {
-        const sendNotification = (message: { message: string; status: boolean }) => {
-          controller.enqueue(
-            new TextEncoder().encode(`data: ${JSON.stringify(message)}\n\n`)
-          );
-        };
-      
-        eventEmitter.on("paymentNotification", sendNotification);
-      
-        const cleanUp = () => {
-          eventEmitter.off("paymentNotification", sendNotification);
-          controller.close();
-        };
-      
-        request.signal.addEventListener("abort", cleanUp);
-      }
-      
+        async start(controller) {
+            const sendQueueData = async () => {
+                const queueStats = await prisma.order.aggregate({
+                    where: {
+                        status: { in: ["confirmOrder", "onProgress"] },
+                    },
+                    _sum: {
+                        estimatedTime_Machine: true,
+                        estimatedTime_Operator: true,
+                    },
+                });
+
+                const machineTime = queueStats._sum.estimatedTime_Machine ?? 0;
+                const operatorTime =
+                    queueStats._sum.estimatedTime_Operator ?? 0;
+
+                const data = JSON.stringify({
+                    currentMachineQueueTime: Math.ceil(machineTime),
+                    currentOperatorQueueTime: Math.ceil(operatorTime),
+                });
+
+                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            };
+
+            await sendQueueData();
+
+            const listener = async () => await sendQueueData();
+
+            eventEmitter.on("orderUpdated", listener);
+
+            return () => eventEmitter.off("orderUpdated", listener);
+        },
     });
 
     return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
+        headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+        },
     });
-  } catch (err: unknown) {
-    console.error("❗ SSE Error:", err);
-    return Response.json(
-      {
-        status: 500,
-        success: false,
-        message: "SSE failed",
-      },
-      { status: 500 }
-    );
-  }
 }

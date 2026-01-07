@@ -35,7 +35,11 @@ export async function GET(
             },
         });
 
-        if (!getOrder) {
+        if (
+            !getOrder ||
+            typeof getOrder.estimatedTime_Machine !== "number" ||
+            typeof getOrder.estimatedTime_Operator !== "number"
+        ) {
             return httpResponse(404, false, "Order Not Found", null);
         }
 
@@ -54,6 +58,10 @@ export async function GET(
             username: getOrder.user.username,
             phoneNumber: getOrder.user.phoneNum,
             printType: getOrder.printType,
+            durationMinutes:
+                (getOrder.estimatedTime_Machine +
+                    getOrder.estimatedTime_Operator) /
+                60,
         };
         return httpResponse(200, true, "Success GET data", payload);
     } catch (err: unknown) {

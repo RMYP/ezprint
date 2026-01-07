@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import httpResponse from "@/lib/httpError";
 import { cookies } from "next/headers";
 
-export async function GET(request: Request) {
+export async function GET() {
     try {
         const cookieStore = cookies();
         const tokenCookie = (await cookieStore).get("_token");

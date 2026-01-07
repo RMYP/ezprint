@@ -224,7 +224,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         fetchOrder();
     }, [params]);
 
-    // mockup updateStatus
     const handleUpdateStatus = async () => {
         if (!selectedStatus) {
             toast.error("Status yang dipilih tidak valid.");
@@ -239,7 +238,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                     status: selectedStatus,
                 };
 
-                await updateOrderStatus(payload);
+                const result = await updateOrderStatus(payload);
 
                 toast.success(
                     `Status pesanan berhasil diubah menjadi: ${getStatusLabel(
@@ -249,7 +248,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                         position: "bottom-center",
                     }
                 );
-
                 setCurrentStatus(selectedStatus);
             }
         } catch (error) {

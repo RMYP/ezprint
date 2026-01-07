@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     if (transaction_status === "settlement") {
-      eventEmitter.emit("paymentNotification", {
+      eventEmitter.emit("orderUpdated", {
         message: "Payment Success",
         status: true,
       });

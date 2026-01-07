@@ -10,6 +10,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import { checkJwt } from "@/lib/jwtDecode";
 import { cookies } from "next/headers";
+import { eventEmitter } from "@/lib/eventEmitter";
 
 export async function GET(
     request: NextRequest,
@@ -17,6 +18,7 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
+        console.log(id);
 
         if (!id) {
             return httpResponse(422, false, "Invalid status", null);
@@ -39,17 +41,16 @@ export async function GET(
             where: { transactionId: id },
             orderBy: { transactionTime: "desc" },
             take: 1,
-            select: { transactionStatus: true },
+            select: { transactionStatus: true, orderId: true },
         });
 
-        console.log(checkStatus);
         if (checkStatus?.transactionStatus === "settlement") {
             return httpResponse(201, true, "paymentSuccess", null);
         }
 
         // call Midtrans
         const getTransaction = await axios.get(
-            `${MidtransBaseUrl}/v2/${id}/status`,
+            `${MidtransBaseUrl}v2/${id}/status`,
             {
                 headers: {
                     accept: "application/json",
@@ -57,33 +58,98 @@ export async function GET(
                 },
             }
         );
-        if (getTransaction.data?.transaction_status === "settlement") {
-            const paymentData = await prisma.payment.findFirst({
-                where: { transactionId: id },
-                select: { orderId: true },
-            });
 
+        if (getTransaction.data?.transaction_status === "settlement") {
+            const paymentData = checkStatus;
             if (paymentData) {
-                await prisma.$transaction([
-                    prisma.payment.updateMany({
+                await prisma.$transaction(async (tx) => {
+                    const existingOrder = await tx.order.findUnique({
+                        where: { id: paymentData.orderId },
+                    });
+
+                    if (
+                        existingOrder?.paymentStatus === true ||
+                        existingOrder?.status === "onProgress"
+                    ) {
+                        return;
+                    }
+
+                    tx.payment.updateMany({
                         where: { transactionId: id },
                         data: { transactionStatus: "settlement" },
-                    }),
-                    prisma.order.update({
+                    });
+
+                    let queueSummary = await tx.dailyPrintSummary.findFirst({
+                        orderBy: { createdAt: "desc" },
+                    });
+
+                    if (!queueSummary) {
+                        queueSummary = await tx.dailyPrintSummary.create({
+                            data: {
+                                lastPrinterFinishTime: new Date(),
+                                lastBinderFinishTime: new Date(),
+                            },
+                        });
+                    }
+
+                    const now = new Date();
+
+                    const lastPrint = new Date(
+                        queueSummary.lastPrinterFinishTime
+                    );
+
+                    const lastBind = new Date(
+                        queueSummary.lastBinderFinishTime
+                    );
+
+                    const machineDur =
+                        existingOrder?.estimatedTime_Machine || 0;
+                    const operatorDur =
+                        existingOrder?.estimatedTime_Operator || 0;
+
+                    const startPrint = lastPrint > now ? lastPrint : now;
+                    const endPrint = new Date(
+                        startPrint.getTime() + machineDur * 1000
+                    );
+
+                    const startBind = lastBind > endPrint ? lastBind : endPrint;
+
+                    const endBind = new Date(
+                        startBind.getTime() + operatorDur * 1000
+                    );
+
+                    await tx.dailyPrintSummary.update({
+                        where: { id: queueSummary.id },
+                        data: {
+                            lastPrinterFinishTime: endPrint,
+                            lastBinderFinishTime: endBind,
+                        },
+                    });
+
+                    await tx.order.update({
                         where: { id: paymentData.orderId },
                         data: {
-                            paymentStatus: true,
                             status: "onProgress",
+                            paymentStatus: true,
+                            readyAt: endBind,
                         },
-                    }),
-                ]);
+                    });
+                });
             }
-            return NextResponse.redirect(`${BaseUrl}/status/${id}`);
+            eventEmitter.emit("orderUpdated");
+            return NextResponse.json({
+                status: 200,
+                success: true,
+                message: "Payment updated to settlement",
+            });
         }
 
-        return NextResponse.redirect(AfterPayment);
+        return NextResponse.json({
+            status: 200,
+            success: false,
+            message: "Payment still pending",
+        });
     } catch (err: unknown) {
-        console.log(err);
         return httpResponse(
             500,
             false,
