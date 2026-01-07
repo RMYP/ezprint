@@ -18,7 +18,6 @@ export async function POST(request: Request) {
             );
         }
 
-        console.log("sampai sini ok")
         const cookieStore = cookies();
         const tokenCookie = (await cookieStore).get("_token");
         const token = tokenCookie?.value;

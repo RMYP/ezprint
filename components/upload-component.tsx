@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
 interface ProgressUploaderProps {
-  // Callback untuk mengirim ID order/file kembali ke parent
   onUploadSuccess: (id: string, fileName: string) => void;
-  // Callback jika user membatalkan/menghapus file
   onRemove: () => void;
 }
 

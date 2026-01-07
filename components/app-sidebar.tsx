@@ -50,21 +50,21 @@ const data = {
       url: "/dashboard/spesification",
       icon: ListIcon,
     },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: BarChartIcon,
-    },
+    // {
+    //   title: "Analytics",
+    //   url: "#",
+    //   icon: BarChartIcon,
+    // },
     {
       title: "Model",
       url: "/dashboard/model",
       icon: FolderIcon,
     },
-    {
-      title: "Team",
-      url: "#",
-      icon: UsersIcon,
-    },
+    // {
+    //   title: "Team",
+    //   url: "#",
+    //   icon: UsersIcon,
+    // },
   ],
   navClouds: [
     {
@@ -132,21 +132,21 @@ const data = {
     },
   ],
   documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: DatabaseIcon,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: ClipboardListIcon,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: FileIcon,
-    },
+    // {
+    //   name: "Data Library",
+    //   url: "#",
+    //   icon: DatabaseIcon,
+    // },
+    // {
+    //   name: "Reports",
+    //   url: "#",
+    //   icon: ClipboardListIcon,
+    // },
+    // {
+    //   name: "Word Assistant",
+    //   url: "#",
+    //   icon: FileIcon,
+    // },
   ],
 }
 
@@ -162,7 +162,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <a href="/home">
                 <ArrowUpCircleIcon className="h-5 w-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-semibold">PrintKampus</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

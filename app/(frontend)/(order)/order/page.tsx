@@ -227,6 +227,15 @@ export default function OrderPageRedesign() {
             return;
         }
 
+        if (selectedFile.type !== "application/pdf") {
+            toast.error("Hanya file PDF yang diperbolehkan");
+            return;
+        }
+        if (selectedFile.size > 50 * 1024 * 1024) {
+            toast.error("File terlalu besar (Maks 50MB)");
+            return;
+        }
+
         if (!isCalculatedPrice || isCalculating) {
             toast.error("Mohon tunggu perhitungan harga selesai.");
             return;
@@ -773,7 +782,6 @@ export default function OrderPageRedesign() {
                                                 {formatEstimation(
                                                     predictionTime
                                                 )}{" "}
-                                                k
                                             </span>
                                         ) : (
                                             <span className="text-blue-400">
